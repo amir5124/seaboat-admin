@@ -4,7 +4,7 @@ const Dashboard = () => {
     return (
         <div>
             <h2>Admin Dashboard</h2>
-            <p>Selamat datang di panel admin booking boat.</p>
+            <p>Selamat datang di panel admin </p>
             <ul>
                 <li>Kelola Kapal</li>
                 <li>Kelola Trip</li>

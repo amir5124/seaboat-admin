@@ -192,7 +192,7 @@ const Seats = () => {
 
     return (
         <div>
-            <h3>Seats Management</h3>
+            <h3>Manajemen Kursi</h3>
 
             {!selectedBoat && <p>Silakan pilih kapal terlebih dahulu untuk melihat trip dan generate kursi</p>}
 
