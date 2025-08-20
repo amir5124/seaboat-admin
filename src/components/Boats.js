@@ -1,31 +1,51 @@
+// src/pages/Boats.js
 import React, { useState, useEffect } from "react";
 import swal from "sweetalert";
 import axios from "axios";
 
+const API_URL = "https://maruti.linku.co.id";
+
 const Boats = () => {
     const [boats, setBoats] = useState([]);
+    const [trips, setTrips] = useState([]); // 👉 trips admin
     const [boatName, setBoatName] = useState("");
     const [capacity, setCapacity] = useState("");
     const [image, setImage] = useState(null);
     const [editId, setEditId] = useState(null);
     const [showForm, setShowForm] = useState(false);
-    const [loading, setLoading] = useState(false); // 👉 state untuk loading
-
-    const API_URL = "https://maruti.linku.co.id";
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         fetchBoats();
+        fetchTrips(); // load trips admin
     }, []);
 
     const fetchBoats = async () => {
         try {
-            setLoading(true); // mulai loading
+            setLoading(true);
             const { data } = await axios.get(`${API_URL}/api/boats`);
             setBoats(data);
         } catch (err) {
             console.error("Error fetching boats:", err);
         } finally {
-            setLoading(false); // selesai loading
+            setLoading(false);
+        }
+    };
+
+    // 👉 fetch trips admin, filter unik
+    const fetchTrips = async () => {
+        try {
+            const { data } = await axios.get(`${API_URL}/api/trips`);
+            const uniqueTrips = Object.values(
+                data.reduce((acc, trip) => {
+                    const key = `${trip.boat_id}-${trip.route_from}-${trip.route_to}-${trip.etd}`;
+                    if (!acc[key]) acc[key] = trip;
+                    return acc;
+                }, {})
+            );
+            setTrips(uniqueTrips);
+        } catch (err) {
+            console.error("Error fetching trips:", err);
         }
     };
 
@@ -42,7 +62,6 @@ const Boats = () => {
         if (image) formData.append("image", image);
 
         try {
-            // tampilkan loading swal
             swal({
                 title: "Mohon tunggu...",
                 text: "Sedang menyimpan data kapal",
@@ -52,7 +71,8 @@ const Boats = () => {
                 content: {
                     element: "div",
                     attributes: {
-                        innerHTML: '<img src="https://res.cloudinary.com/dgsdmgcc7/image/upload/v1755188126/spinner-icon-gif-10_b1hqoa.gif" style="width:50px; height:50px;" />',
+                        innerHTML:
+                            '<img src="https://res.cloudinary.com/dgsdmgcc7/image/upload/v1755188126/spinner-icon-gif-10_b1hqoa.gif" style="width:50px; height:50px;" />',
                     },
                 },
             });
@@ -77,7 +97,6 @@ const Boats = () => {
         }
     };
 
-
     const handleEdit = (boat) => {
         setEditId(boat.boat_id);
         setBoatName(boat.boat_name);
@@ -94,7 +113,6 @@ const Boats = () => {
             dangerMode: true,
         }).then(async (willDelete) => {
             if (willDelete) {
-                // Tampilkan loading
                 swal({
                     title: "Menghapus...",
                     text: "Mohon tunggu sebentar",
@@ -104,24 +122,17 @@ const Boats = () => {
                     content: {
                         element: "div",
                         attributes: {
-                            innerHTML: `<img src="https://res.cloudinary.com/dgsdmgcc7/image/upload/v1755188126/spinner-icon-gif-10_b1hqoa.gif" width="60" />`,
+                            innerHTML:
+                                '<img src="https://res.cloudinary.com/dgsdmgcc7/image/upload/v1755188126/spinner-icon-gif-10_b1hqoa.gif" width="60" />',
                         },
                     },
                 });
 
                 try {
                     await axios.delete(`${API_URL}/api/boats/${id}`);
-
                     swal("Sukses!", "Kapal berhasil dihapus", "success");
                     fetchBoats();
-
-                    // Tutup form edit kalau kapal yang dihapus adalah yang sedang di-edit
-                    if (editId === id) {
-                        setEditId(null);
-                        setBoatName("");
-                        setCapacity("");
-                        setShowForm(false);
-                    }
+                    if (editId === id) resetForm();
                 } catch (err) {
                     console.error("Error deleting boat:", err);
                     swal("Gagal!", "Tidak bisa menghapus kapal", "error");
@@ -129,9 +140,6 @@ const Boats = () => {
             }
         });
     };
-
-
-
 
     const resetForm = () => {
         setBoatName("");
@@ -147,13 +155,7 @@ const Boats = () => {
 
             <button
                 className="btn btn-success mb-3"
-                onClick={() => {
-                    setShowForm(true);
-                    setEditId(null);
-                    setBoatName("");
-                    setCapacity("");
-                    setImage(null);
-                }}
+                onClick={() => setShowForm(true)}
             >
                 Tambah Kapal
             </button>
@@ -203,13 +205,11 @@ const Boats = () => {
                 </div>
             )}
 
-            <div className="row">
+            {/* Daftar kapal */}
+            <div className="row mb-5">
                 {loading ? (
                     <div className="col-12 text-center my-4">
-                        {/* Bootstrap spinner */}
-                        <div className="spinner-border text-primary" role="status">
-                            <span className="visually-hidden"></span>
-                        </div>
+                        <div className="spinner-border text-primary" role="status"></div>
                         <p className="mt-2">Mengambil data kapal...</p>
                     </div>
                 ) : boats.length > 0 ? (
@@ -223,7 +223,6 @@ const Boats = () => {
                                         className="card-img-top"
                                         style={{ height: "200px", objectFit: "cover" }}
                                     />
-
                                 ) : (
                                     <div
                                         style={{
@@ -240,9 +239,7 @@ const Boats = () => {
                                 )}
                                 <div className="card-body text-center">
                                     <h5 className="card-title">{boat.boat_name}</h5>
-                                    <p className="card-text">
-                                        Kapasitas: {boat.capacity} kursi
-                                    </p>
+                                    <p className="card-text">Kapasitas: {boat.capacity} kursi</p>
                                     <button
                                         className="btn btn-sm btn-warning me-2"
                                         onClick={() => handleEdit(boat)}
@@ -262,6 +259,34 @@ const Boats = () => {
                 ) : (
                     <div className="col-12 text-center">
                         <p>Tidak ada data kapal</p>
+                    </div>
+                )}
+            </div>
+
+            {/* Daftar trips unik admin */}
+            <h3 className="mb-3">Daftar Trip (Unik)</h3>
+            <div className="row">
+                {trips.length > 0 ? (
+                    trips.map((trip) => (
+                        <div className="col-md-4 mb-4" key={trip.trip_id}>
+                            <div className="card shadow-sm h-100">
+                                <img
+                                    src={trip.image_url ? `${API_URL}${trip.image_url}` : "/placeholder-boat.jpg"}
+                                    alt={trip.boat_name}
+                                    className="card-img-top"
+                                    style={{ height: "200px", objectFit: "cover" }}
+                                />
+                                <div className="card-body text-center">
+                                    <h5 className="card-title">{trip.boat_name}</h5>
+                                    <p className="card-text">Rute: {trip.route_from} → {trip.route_to}</p>
+                                    <p className="card-text">Keberangkatan: {trip.etd}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className="col-12 text-center">
+                        <p>Tidak ada trip tersedia</p>
                     </div>
                 )}
             </div>
