@@ -1,59 +1,48 @@
-import React from "react";
-import { BrowserRouter as Router, Route, Switch, Link, Redirect } from "react-router-dom";
+import React, { useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import Sidebar from "./components/Sidebar"; // Import komponen Sidebar
 import Dashboard from "./components/Dashboard";
 import Boats from "./components/Boats";
 import Trips from "./components/Trips";
 import Seats from "./components/Seats";
-import Agen from "./components/Agen"
-import { FaTachometerAlt, FaShip, FaRoute, FaChair, FaUser } from "react-icons/fa";
+import Agen from "./components/Agen";
+import { FaBars } from "react-icons/fa"; // Import FaBars (ikon hamburger)
 
 function App() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   return (
     <Router>
+      <div className="flex min-h-screen bg-gray-100">
 
-      <div className="d-flex">
+        {/* Component Sidebar */}
+        <Sidebar isOpen={isSidebarOpen} toggle={toggleSidebar} />
 
-        {/* Sidebar */}
-        <div className="bg-dark text-white p-3" style={{ minHeight: "100vh", width: "250px" }}>
-          <h4>Maruti Admin</h4>
-          <ul className="nav flex-column">
-            <li className="nav-item">
-              <Link className="nav-link text-white" to="/">
-                <FaTachometerAlt className="me-2" />    Dashboard
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link className="nav-link text-white" to="/boats">
-                <FaShip className="me-2" />    Kapal
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link className="nav-link text-white" to="/trips">
-                <FaRoute className="me-2" />    Trip
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link className="nav-link text-white" to="/seats">
-                <FaChair className="me-2" />    Kursi
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link className="nav-link text-white" to="/agen">
-                <FaUser className="me-2" />    Agen
-              </Link>
-            </li>
-          </ul>
-        </div>
+        {/* Kontainer untuk Konten Utama */}
+        <div className="flex-1 flex flex-col">
 
-        {/* Content */}
-        <div className="flex-grow-1 p-4">
-          <Switch>
-            <Route exact path="/" component={Dashboard} />
-            <Route path="/boats" component={Boats} />
-            <Route path="/trips" component={Trips} />
-            <Route path="/seats" component={Seats} />
-            <Route path="/agen" component={Agen} />
-          </Switch>
+          {/* Header Mobile (Hanya terlihat di layar kecil) */}
+          <div className="bg-white shadow-md p-4 flex items-center md:hidden">
+            <button onClick={toggleSidebar} className="text-gray-800">
+              <FaBars size={24} />
+            </button>
+            <h4 className="text-xl font-bold ml-4">Maruti Admin</h4>
+          </div>
+
+          {/* Area Konten */}
+          <div className="p-4 md:p-8 flex-1">
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/boats" element={<Boats />} />
+              <Route path="/trips" element={<Trips />} />
+              <Route path="/seats" element={<Seats />} />
+              <Route path="/agen" element={<Agen />} />
+            </Routes>
+          </div>
         </div>
       </div>
     </Router>

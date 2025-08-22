@@ -12,15 +12,13 @@ const Trips = () => {
         etd: "",
         remark: ""
     });
-
     const [boats, setBoats] = useState([]);
     const [trips, setTrips] = useState([]);
     const [loadingBoats, setLoadingBoats] = useState(false);
     const [loadingTrips, setLoadingTrips] = useState(false);
     const [showForm, setShowForm] = useState(false);
-    const [editingId, setEditingId] = useState(null); // id trip yang sedang diedit
+    const [editingId, setEditingId] = useState(null);
 
-    // Rute dari jadwal
     const routes = [
         { from: "Sanur", to: "Nusa Penida" },
         { from: "Nusa Penida", to: "Sanur" },
@@ -38,7 +36,7 @@ const Trips = () => {
                 const res = await axios.get(`${API_URL}/api/boats`);
                 setBoats(res.data);
             } catch (err) {
-                console.error("Error fetching boats:", err);
+                console.error(err);
                 swal("Gagal!", "Tidak bisa mengambil data kapal", "error");
             } finally {
                 setLoadingBoats(false);
@@ -52,9 +50,17 @@ const Trips = () => {
         setLoadingTrips(true);
         try {
             const res = await axios.get(`${API_URL}/api/trips`);
-            setTrips(res.data);
+            // Filter trips unik berdasarkan boat_id + route_from + route_to + etd
+            const uniqueTrips = Object.values(
+                res.data.reduce((acc, trip) => {
+                    const key = `${trip.boat_id}-${trip.route_from}-${trip.route_to}-${trip.etd}`;
+                    if (!acc[key]) acc[key] = trip;
+                    return acc;
+                }, {})
+            );
+            setTrips(uniqueTrips);
         } catch (err) {
-            console.error("Error fetching trips:", err);
+            console.error(err);
             swal("Gagal!", "Tidak bisa mengambil data trips", "error");
         } finally {
             setLoadingTrips(false);
@@ -74,10 +80,8 @@ const Trips = () => {
         setTripData({ ...tripData, route_from: from, route_to: to });
     };
 
-    // Submit trip (Tambah / Edit)
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         if (!tripData.boat_id || !tripData.route_from || !tripData.route_to || !tripData.etd) {
             swal("Gagal!", "Data wajib diisi", "error");
             return;
@@ -94,37 +98,27 @@ const Trips = () => {
             });
 
             if (editingId) {
-                // Update trip
                 await axios.put(`${API_URL}/api/trips/${editingId}`, tripData);
                 swal.close();
-                swal("Sukses!", `Trip berhasil diperbarui`, "success");
+                swal("Sukses!", "Trip berhasil diperbarui", "success");
             } else {
-                // Tambah trip
                 await axios.post(`${API_URL}/api/trips`, tripData);
                 swal.close();
                 swal("Sukses!", `Trip ${tripData.route_from} - ${tripData.route_to} berhasil ditambahkan`, "success");
             }
 
-            // Reset form
-            setTripData({
-                boat_id: "",
-                route_from: "",
-                route_to: "",
-                etd: "",
-                remark: ""
-            });
+            setTripData({ boat_id: "", route_from: "", route_to: "", etd: "", remark: "" });
             setShowForm(false);
             setEditingId(null);
 
             fetchTrips();
         } catch (err) {
-            console.error("Error saving trip:", err);
+            console.error(err);
             swal.close();
             swal("Gagal!", "Tidak bisa menyimpan trip", "error");
         }
     };
 
-    // Edit trip
     const handleEdit = (trip) => {
         setTripData({
             boat_id: trip.boat_id,
@@ -137,7 +131,6 @@ const Trips = () => {
         setShowForm(true);
     };
 
-    // Hapus trip
     const handleDelete = async (id) => {
         const confirm = await swal({
             title: "Yakin hapus?",
@@ -164,22 +157,15 @@ const Trips = () => {
             swal.close();
             swal("Sukses!", "Trip berhasil dihapus", "success");
 
-            // kalau sedang edit data yang dihapus, sembunyikan form
             if (editingId === id) {
                 setShowForm(false);
                 setEditingId(null);
-                setTripData({
-                    boat_id: "",
-                    route_from: "",
-                    route_to: "",
-                    etd: "",
-                    remark: ""
-                });
+                setTripData({ boat_id: "", route_from: "", route_to: "", etd: "", remark: "" });
             }
 
             fetchTrips();
         } catch (err) {
-            console.error("Error deleting trip:", err);
+            console.error(err);
             swal.close();
             swal("Gagal!", "Tidak bisa menghapus trip", "error");
         }
@@ -189,28 +175,19 @@ const Trips = () => {
         <div className="container mt-3">
             <h3>Manajemen Trips</h3>
 
-            {/* Tombol Toggle Form */}
             <button
                 className="btn btn-primary mt-2 mb-3"
                 onClick={() => {
                     setShowForm(!showForm);
                     if (!showForm) {
-                        // reset jika buka form baru
                         setEditingId(null);
-                        setTripData({
-                            boat_id: "",
-                            route_from: "",
-                            route_to: "",
-                            etd: "",
-                            remark: ""
-                        });
+                        setTripData({ boat_id: "", route_from: "", route_to: "", etd: "", remark: "" });
                     }
                 }}
             >
                 {showForm ? "Tutup Form" : "Tambah Trip"}
             </button>
 
-            {/* Form Tambah/Edit Trip */}
             {showForm && (
                 <form onSubmit={handleSubmit} className="mt-3 card card-body shadow-sm">
                     <h5>{editingId ? "Edit Trip" : "Tambah Trip"}</h5>
@@ -287,47 +264,47 @@ const Trips = () => {
                 </form>
             )}
 
-            {/* Daftar Trips */}
             <h3 className="mt-5">Daftar Trips</h3>
 
             {loadingTrips ? (
                 <div className="text-center mt-3">
-                    <div className="spinner-border text-primary" role="status">
-                        <span className="sr-only">Loading...</span>
-                    </div>
+                    <div className="spinner-border text-primary" role="status"></div>
                     <p>Sedang mengambil data trips...</p>
                 </div>
             ) : (
                 <div className="row mt-3">
-                    {trips.map((trip) => (
-                        <div className="col-md-4" key={trip.trip_id}>
-                            <div className="card mb-3 shadow-sm">
-                                <div className="card-body">
-                                    <h5 className="card-title">{trip.boat_name}</h5>
-                                    <p className="card-text">
-                                        {trip.route_from} → {trip.route_to}
-                                        <br />
-                                        Jam: {trip.etd}
-                                        <br />
-                                        Remark: {trip.remark || "-"}
-                                    </p>
-                                    <button
-                                        className="btn btn-primary btn-sm mr-2"
-                                        onClick={() => handleEdit(trip)}
-                                    >
-                                        Edit
-                                    </button>
-                                    <button
-                                        className="btn btn-danger btn-sm"
-                                        onClick={() => handleDelete(trip.trip_id)}
-                                    >
-                                        Hapus
-                                    </button>
+                    {trips.length > 0 ? (
+                        trips.map((trip) => (
+                            <div className="col-md-4" key={trip.trip_id}>
+                                <div className="card mb-3 shadow-sm">
+                                    <div className="card-body">
+                                        <h5 className="card-title">{trip.boat_name}</h5>
+                                        <p className="card-text">
+                                            {trip.route_from} → {trip.route_to}
+                                            <br />
+                                            Jam: {trip.etd}
+                                            <br />
+                                            Remark: {trip.remark || "-"}
+                                        </p>
+                                        <button
+                                            className="btn btn-primary btn-sm mr-2"
+                                            onClick={() => handleEdit(trip)}
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            className="btn btn-danger btn-sm"
+                                            onClick={() => handleDelete(trip.trip_id)}
+                                        >
+                                            Hapus
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
-                    {trips.length === 0 && <p>Belum ada data trip.</p>}
+                        ))
+                    ) : (
+                        <p>Belum ada data trip.</p>
+                    )}
                 </div>
             )}
         </div>
