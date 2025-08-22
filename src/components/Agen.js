@@ -121,7 +121,7 @@ const Agen = () => {
     };
 
     return (
-        <div className="container mt-4">
+        <div className="container pt-20">
             <h3 className="mb-3">Manajemen Agen</h3>
 
             <button

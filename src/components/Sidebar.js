@@ -5,10 +5,9 @@ import { FaTachometerAlt, FaShip, FaRoute, FaChair, FaUser, FaTimes } from "reac
 // Terima 'isOpen' dan 'toggle' sebagai props
 function Sidebar({ isOpen, toggle }) {
     return (
-        // Gunakan kelas responsif: hidden di mobile dan flex di md ke atas
-        // Untuk mobile, gunakan fixed, z-index tinggi, dan transform untuk efek slide-in
+        // Hapus `md:relative` di sini. Biarkan `fixed` berlaku di semua layar
         <div
-            className={`fixed top-0 left-0 h-screen w-64 bg-gray-800 text-white p-5 shadow-lg z-50 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"
+            className={`fixed top-0 left-0 h-screen w-64 bg-gray-800 text-white p-5 shadow-lg z-50 transition-transform duration-300 ease-in-out md:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"
                 }`}
         >
             {/* Tombol Tutup Sidebar (Hanya terlihat di mobile) */}
@@ -35,11 +34,6 @@ function Sidebar({ isOpen, toggle }) {
                         <FaRoute className="me-2" /> Trip
                     </Link>
                 </li>
-                {/* <li className="nav-item">
-          <Link className="nav-link text-white hover:bg-gray-700 p-2 rounded-md flex items-center" to="/seats" onClick={toggle}>
-            <FaChair className="me-2" /> Kursi
-          </Link>
-        </li> */}
                 <li className="nav-item">
                     <Link className="nav-link text-white hover:bg-gray-700 p-2 rounded-md flex items-center" to="/agen" onClick={toggle}>
                         <FaUser className="me-2" /> Agen

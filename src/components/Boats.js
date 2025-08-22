@@ -142,7 +142,7 @@ const Boats = () => {
     };
 
     return (
-        <div className="container mt-4">
+        <div className="container pt-20">
             <h3 className="mb-3">Manajement Kapal</h3>
 
             <button

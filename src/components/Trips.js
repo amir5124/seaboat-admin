@@ -172,7 +172,7 @@ const Trips = () => {
     };
 
     return (
-        <div className="container mt-3">
+        <div className="container pt-20">
             <h3>Manajemen Trips</h3>
 
             <button
