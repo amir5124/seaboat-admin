@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import swal from "sweetalert";
-import axios from "axios";
+import axios from "../api/axios.js";
 
 const Agen = () => {
     const [agens, setAgens] = useState([]);
@@ -47,6 +47,8 @@ const Agen = () => {
                 content: {
                     element: "div",
                     attributes: {
+                        // Gunakan inline CSS dengan Flexbox untuk menengahkan
+                        style: 'display: flex; justify-content: center; align-items: center;',
                         innerHTML:
                             '<img src="https://res.cloudinary.com/dgsdmgcc7/image/upload/v1755188126/spinner-icon-gif-10_b1hqoa.gif" style="width:50px; height:50px;" />',
                     },
@@ -65,7 +67,22 @@ const Agen = () => {
             fetchAgens();
         } catch (err) {
             console.error("Error saving agen:", err);
-            swal("Gagal!", "Tidak bisa terhubung ke server", "error");
+
+            // --- BAGIAN INI YANG DITAMBAHKAN/DIUBAH ---
+            if (err.response && err.response.data && err.response.data.error) {
+                // Asumsi backend mengirim pesan kesalahan dalam format { "error": "Duplicate entry..." }
+                const errorMessage = err.response.data.error;
+
+                if (errorMessage.includes('Duplicate entry') && errorMessage.includes('kode_agen')) {
+                    swal("Gagal!", "Kode agen '" + kodeAgen + "' sudah ada. Silakan gunakan kode lain.", "error");
+                } else {
+                    swal("Gagal!", "Terjadi kesalahan: " + errorMessage, "error");
+                }
+            } else {
+                // Menangani error umum jika tidak ada respons dari server
+                swal("Gagal!", "Tidak bisa terhubung ke server. Silakan coba lagi nanti.", "error");
+            }
+            // ------------------------------------------
         }
     };
 

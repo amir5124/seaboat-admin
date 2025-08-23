@@ -28,7 +28,6 @@ const Trips = () => {
         { from: "Lembongan", to: "Nusa Penida" }
     ];
 
-    // Ambil data kapal
     useEffect(() => {
         const fetchBoats = async () => {
             setLoadingBoats(true);
@@ -45,16 +44,17 @@ const Trips = () => {
         fetchBoats();
     }, []);
 
-    // Ambil data trips
     const fetchTrips = async () => {
         setLoadingTrips(true);
         try {
             const res = await axios.get(`${API_URL}/api/trips`);
-            // Filter trips unik berdasarkan boat_id + route_from + route_to + etd
             const uniqueTrips = Object.values(
                 res.data.reduce((acc, trip) => {
                     const key = `${trip.boat_id}-${trip.route_from}-${trip.route_to}-${trip.etd}`;
-                    if (!acc[key]) acc[key] = trip;
+                    if (!acc[key]) {
+                        acc[key] = { ...trip, count: 0 };
+                    }
+                    acc[key].count += 1;
                     return acc;
                 }, {})
             );
@@ -131,12 +131,15 @@ const Trips = () => {
         setShowForm(true);
     };
 
-    const handleDelete = async (id) => {
+    // --- Fungsi handleDelete yang sudah diperbarui ---
+    const handleDelete = async (trip) => {
+        const { boat_id, route_from, route_to, etd } = trip;
+
         const confirm = await swal({
-            title: "Yakin hapus?",
-            text: "Data tidak bisa dikembalikan",
+            title: "Hapus Semua Trip?",
+            text: "Anda akan menghapus semua trip harian untuk rute dan jam ini. Aksi ini tidak dapat dikembalikan!",
             icon: "warning",
-            buttons: ["Batal", "Hapus"],
+            buttons: ["Batal", "Hapus Semua"],
             dangerMode: true
         });
 
@@ -145,19 +148,26 @@ const Trips = () => {
         try {
             swal({
                 title: "Menghapus...",
-                text: "Mohon tunggu sebentar",
+                text: "Mohon tunggu sebentar, ini akan memakan waktu.",
                 icon: "https://res.cloudinary.com/dgsdmgcc7/image/upload/v1755188126/spinner-icon-gif-10_b1hqoa.gif",
                 buttons: false,
                 closeOnClickOutside: false,
                 closeOnEsc: false
             });
 
-            await axios.delete(`${API_URL}/api/trips/${id}`);
+            const response = await axios.delete(`${API_URL}/api/trips/series`, {
+                params: {
+                    boat_id,
+                    route_from,
+                    route_to,
+                    etd
+                }
+            });
 
             swal.close();
-            swal("Sukses!", "Trip berhasil dihapus", "success");
+            swal("Sukses!", `Trip berhasil dihapus.`, "success");
 
-            if (editingId === id) {
+            if (editingId === trip.trip_id) {
                 setShowForm(false);
                 setEditingId(null);
                 setTripData({ boat_id: "", route_from: "", route_to: "", etd: "", remark: "" });
@@ -170,6 +180,7 @@ const Trips = () => {
             swal("Gagal!", "Tidak bisa menghapus trip", "error");
         }
     };
+    // --- Akhir dari fungsi yang diperbarui ---
 
     return (
         <div className="container pt-20">
@@ -285,6 +296,8 @@ const Trips = () => {
                                             Jam: {trip.etd}
                                             <br />
                                             Remark: {trip.remark || "-"}
+                                            <br />
+                                            {/* <span className="font-weight-bold">{trip.count} Hari</span> */}
                                         </p>
                                         <button
                                             className="btn btn-primary btn-sm mr-2"
@@ -294,7 +307,7 @@ const Trips = () => {
                                         </button>
                                         <button
                                             className="btn btn-danger btn-sm"
-                                            onClick={() => handleDelete(trip.trip_id)}
+                                            onClick={() => handleDelete(trip)} // Pastikan memanggil dengan objek trip lengkap
                                         >
                                             Hapus
                                         </button>

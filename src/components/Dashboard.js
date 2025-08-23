@@ -6,7 +6,6 @@ import Swal from "sweetalert2";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
-// Definisikan URL API
 const API_URL = "https://maruti.linku.co.id";
 
 const Dashboard = () => {
@@ -21,6 +20,8 @@ const Dashboard = () => {
     const [selectedTrip, setSelectedTrip] = useState("");
     const [selectedDate, setSelectedDate] = useState("");
     const [selectedAgent, setSelectedAgent] = useState("");
+    // --- Menambahkan state baru untuk filter nama penumpang ---
+    const [passengerNameFilter, setPassengerNameFilter] = useState("");
 
     // State untuk menyimpan opsi filter unik
     const [boatOptions, setBoatOptions] = useState([]);
@@ -39,7 +40,8 @@ const Dashboard = () => {
             setBookings(parsedBookings);
 
             const boats = [...new Set(parsedBookings.map(b => b.boat_name))];
-            const trips = [...new Set(parsedBookings.map(b => b.trip_route))];
+            // --- Mengubah logika untuk tripOptions agar menyertakan ETD (Jam) ---
+            const trips = [...new Set(parsedBookings.map(b => `${b.trip_route}|${b.etd}`))];
             const dates = [...new Set(parsedBookings.map(b => b.trip_date))];
             const agents = [...new Set(parsedBookings.map(b => b.agent_name))];
 
@@ -63,7 +65,9 @@ const Dashboard = () => {
             filtered = filtered.filter(booking => booking.boat_name === selectedBoat);
         }
         if (selectedTrip) {
-            filtered = filtered.filter(booking => booking.trip_route === selectedTrip);
+            // --- Mengubah logika filter untuk Trip, memisahkan rute dan jam ---
+            const [route, etd] = selectedTrip.split("|");
+            filtered = filtered.filter(booking => booking.trip_route === route && booking.etd === etd);
         }
         if (selectedDate) {
             filtered = filtered.filter(booking => booking.trip_date === selectedDate);
@@ -71,8 +75,16 @@ const Dashboard = () => {
         if (selectedAgent) {
             filtered = filtered.filter(booking => booking.agent_name === selectedAgent);
         }
+        // --- Menambahkan logika filter berdasarkan nama penumpang ---
+        if (passengerNameFilter) {
+            const searchName = passengerNameFilter.toLowerCase();
+            filtered = filtered.filter(booking =>
+                booking.passengers_data.some(pax => pax.fullName.toLowerCase().includes(searchName))
+            );
+        }
+
         setBookings(filtered);
-    }, [allBookings, selectedBoat, selectedTrip, selectedDate, selectedAgent]);
+    }, [allBookings, selectedBoat, selectedTrip, selectedDate, selectedAgent, passengerNameFilter]);
 
     useEffect(() => {
         fetchAllBookings();
@@ -121,10 +133,7 @@ const Dashboard = () => {
     };
 
     const handleExportFilteredPdf = () => {
-        // ... (Kode untuk ekspor PDF tetap sama) ...
         Swal.fire('Gagal!', 'Fungsi PDF sedang non-aktif. Mohon gunakan tombol Export Excel.', 'info');
-        // Catatan: Jika Anda ingin kembali menggunakan PDF client-side,
-        // aktifkan kembali kode di sini dan hapus baris Swal.fire() di atas.
     };
 
     const handleExportFilteredExcel = () => {
@@ -133,7 +142,6 @@ const Dashboard = () => {
             return;
         }
 
-        // Filter data yang akan diekspor, hanya yang berstatus "Cek-in"
         const checkedInBookings = bookings.filter(booking => booking.status === 'Cek-in');
 
         if (checkedInBookings.length === 0) {
@@ -141,14 +149,13 @@ const Dashboard = () => {
             return;
         }
 
-        // Flatten data untuk Excel
         const exportData = [];
         checkedInBookings.forEach(booking => {
             booking.passengers_data.forEach(pax => {
                 exportData.push({
                     'No.': '',
                     'Nama Penumpang': pax.fullName,
-                    'Kategori Penumpang': `${booking.passenger_category} (${booking.passenger_type})`, // <-- booking.passenger_category yang benar
+                    'Kategori Penumpang': `${booking.passenger_category} (${booking.passenger_type})`,
                     'Trip': booking.trip_route,
                     'Tanggal Trip': booking.trip_date,
                     'Jam Keberangkatan': booking.etd,
@@ -159,7 +166,6 @@ const Dashboard = () => {
             });
         });
 
-        // Menambahkan nomor urut setelah data disiapkan
         let no = 1;
         exportData.forEach(row => {
             row['No.'] = no++;
@@ -169,7 +175,6 @@ const Dashboard = () => {
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Manifest");
 
-        // Membuat file dan mengunduhnya
         const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
         const dataBlob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
         const now = new Date();
@@ -207,67 +212,71 @@ const Dashboard = () => {
         );
     }
 
-    if (bookings.length === 0 && !loading) {
-        return (
-            <div className="text-center mt-20 p-4 bg-yellow-100 text-yellow-700 rounded-lg col-span-full">
-                <p>Tidak ada history pemesanan yang ditemukan.</p>
-            </div>
-        );
-    }
-
     return (
         <div className="pt-20 container mx-auto p-4 md:p-8">
-            <div className="mb-8 p-4 bg-white rounded-xl shadow-md flex flex-col md:flex-row gap-4 items-center sticky top-20 z-10">
-                <h3 className="text-lg font-semibold text-gray-800">Filter Pemesanan:</h3>
+            <div className="mb-8 p-4 bg-white rounded-xl shadow-md sticky top-20 z-10">
+                <div className="flex flex-wrap gap-4 items-center">
+                    <h3 className="text-lg font-semibold text-gray-800">Filter:</h3>
 
-                <select
-                    className="form-select border rounded-md p-2 w-full md:w-auto"
-                    value={selectedBoat}
-                    onChange={(e) => setSelectedBoat(e.target.value)}
-                >
-                    <option value="">Semua Kapal</option>
-                    {boatOptions.map(boat => (
-                        <option key={boat} value={boat}>{boat}</option>
-                    ))}
-                </select>
+                    {/* Baris 1: Filter Dropdown dan Date */}
+                    <select
+                        className="form-select border rounded-md p-2 w-full sm:w-auto"
+                        value={selectedBoat}
+                        onChange={(e) => setSelectedBoat(e.target.value)}
+                    >
+                        <option value="">Semua Kapal</option>
+                        {boatOptions.map(boat => (
+                            <option key={boat} value={boat}>{boat}</option>
+                        ))}
+                    </select>
 
-                <select
-                    className="form-select border rounded-md p-2 w-full md:w-auto"
-                    value={selectedTrip}
-                    onChange={(e) => setSelectedTrip(e.target.value)}
-                >
-                    <option value="">Semua Trip</option>
-                    {tripOptions.map(trip => (
-                        <option key={trip} value={trip}>{trip}</option>
-                    ))}
-                </select>
+                    <select
+                        className="form-select border rounded-md p-2 w-full sm:w-auto"
+                        value={selectedTrip}
+                        onChange={(e) => setSelectedTrip(e.target.value)}
+                    >
+                        <option value="">Semua Trip</option>
+                        {tripOptions.map(trip => (
+                            <option key={trip} value={trip}>{trip.split('|')[0]} ({trip.split('|')[1]})</option>
+                        ))}
+                    </select>
 
-                <input
-                    type="date"
-                    className="form-input border rounded-md p-2 w-full md:w-auto"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                />
+                    <input
+                        type="date"
+                        className="form-input border rounded-md p-2 w-full sm:w-auto"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                    />
 
-                <select
-                    className="form-select border rounded-md p-2 w-full md:w-auto"
-                    value={selectedAgent}
-                    onChange={(e) => setSelectedAgent(e.target.value)}
-                >
-                    <option value="">Semua Agen</option>
-                    {agentOptions.map(agent => (
-                        <option key={agent} value={agent}>{agent}</option>
-                    ))}
-                </select>
+                    <select
+                        className="form-select border rounded-md p-2 w-full sm:w-auto"
+                        value={selectedAgent}
+                        onChange={(e) => setSelectedAgent(e.target.value)}
+                    >
+                        <option value="">Semua Agen</option>
+                        {agentOptions.map(agent => (
+                            <option key={agent} value={agent}>{agent}</option>
+                        ))}
+                    </select>
 
-                <button
-                    onClick={handleExportFilteredExcel}
-                    className="text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-full py-2 px-6 flex items-center space-x-2 transition-colors duration-200 shadow-md hover:shadow-lg w-full md:w-auto"
-                    title="Export Laporan Excel"
-                >
-                    <FaFileExcel size={16} />
-                    <span>Export Excel</span>
-                </button>
+                    {/* Baris 2: Input Pencarian Penumpang dan Tombol Export */}
+                    <input
+                        type="text"
+                        className="form-input border rounded-md p-2 w-full sm:w-auto  sm:mt-0"
+                        placeholder="Cari nama penumpang..."
+                        value={passengerNameFilter}
+                        onChange={(e) => setPassengerNameFilter(e.target.value)}
+                    />
+
+                    <button
+                        onClick={handleExportFilteredExcel}
+                        className="text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-full py-2 px-6 flex items-center justify-center space-x-2 transition-colors duration-200 shadow-md hover:shadow-lg w-full sm:w-auto mt-2 sm:mt-0"
+                        title="Export Laporan Excel"
+                    >
+                        <FaFileExcel size={16} />
+                        <span>Export Excel</span>
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-3">
