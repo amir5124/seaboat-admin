@@ -1,6 +1,5 @@
 import React from "react";
 import { Link } from "react-router-dom";
-// Impor ikon FaPlusCircle untuk pesanan baru
 import { FaTachometerAlt, FaShip, FaRoute, FaChair, FaUser, FaTimes, FaPlusCircle } from "react-icons/fa";
 
 function Sidebar({ isOpen, toggle, userRole }) {
@@ -41,13 +40,16 @@ function Sidebar({ isOpen, toggle, userRole }) {
                                 <FaChair className="me-2" /> Kursi
                             </Link>
                         </li> */}
-                        {/* === Tambahkan link Admin Order di sini === */}
-                        <li className="nav-item">
-                            <Link className="nav-link text-white hover:bg-gray-700 p-2 rounded-md flex items-center" to="/admin-order" onClick={toggle}>
-                                <FaPlusCircle className="me-2" /> Buat Pesanan
-                            </Link>
-                        </li>
                     </>
+                )}
+
+                {/* === Tautan untuk Admin dan Agen === */}
+                {(userRole === 'admin' || userRole === 'agen') && (
+                    <li className="nav-item">
+                        <Link className="nav-link text-white hover:bg-gray-700 p-2 rounded-md flex items-center" to="/admin-order" onClick={toggle}>
+                            <FaPlusCircle className="me-2" /> Buat Pesanan
+                        </Link>
+                    </li>
                 )}
 
                 {/* Tautan untuk Admin dan Agen */}

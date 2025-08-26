@@ -214,7 +214,7 @@ const Trips = () => {
                         >
                             <option value="">-- Pilih Kapal --</option>
                             {loadingBoats ? (
-                                <option>Loading...</option>
+                                <option></option>
                             ) : (
                                 boats.map((boat) => (
                                     <option key={boat.boat_id} value={boat.boat_id}>

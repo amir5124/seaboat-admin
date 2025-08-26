@@ -59,7 +59,7 @@ function App() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
+          <span className="visually-hidden"></span>
         </div>
       </div>
     );
@@ -123,7 +123,7 @@ function App() {
                 <Route
                   path="/admin-order"
                   element={
-                    (userRole === 'admin')
+                    (userRole === 'admin' || userRole === 'agen')
                       ? <AdminOrderForm />
                       : <UnauthorizedRedirect />
                   }
@@ -138,6 +138,7 @@ function App() {
                       : <UnauthorizedRedirect />
                   }
                 />
+
 
                 {/* Rute wildcard untuk mengalihkan kembali ke dashboard jika path tidak ditemukan */}
                 <Route path="*" element={<Navigate to="/" />} />
