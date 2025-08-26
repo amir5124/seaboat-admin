@@ -8,6 +8,34 @@ import { saveAs } from 'file-saver';
 
 const API_URL = "https://maruti.linku.co.id";
 
+const safeJsonParse = (data) => {
+    if (typeof data === 'string') {
+        try {
+            return JSON.parse(data);
+        } catch (e) {
+            console.error("Failed to parse JSON string:", e);
+            return null;
+        }
+    }
+    return data;
+};
+
+const getPassengerSummary = (passengers) => {
+    const summary = {};
+    if (Array.isArray(passengers)) {
+        passengers.forEach(pax => {
+            const type = pax.type;
+            if (type) {
+                summary[type] = (summary[type] || 0) + 1;
+            }
+        });
+    }
+    return Object.entries(summary).map(([type, count]) => {
+        const capitalizedType = type.charAt(0).toUpperCase() + type.slice(1);
+        return `${count} ${capitalizedType}`;
+    }).join(', ');
+};
+
 const Dashboard = () => {
     const navigate = useNavigate();
     const [bookings, setBookings] = useState([]);
@@ -15,32 +43,61 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // State untuk filter
     const [selectedBoat, setSelectedBoat] = useState("");
     const [selectedTrip, setSelectedTrip] = useState("");
     const [selectedDate, setSelectedDate] = useState("");
     const [selectedAgent, setSelectedAgent] = useState("");
-    // --- Menambahkan state baru untuk filter nama penumpang ---
     const [passengerNameFilter, setPassengerNameFilter] = useState("");
 
-    // State untuk menyimpan opsi filter unik
     const [boatOptions, setBoatOptions] = useState([]);
     const [tripOptions, setTripOptions] = useState([]);
     const [dateOptions, setDateOptions] = useState([]);
     const [agentOptions, setAgentOptions] = useState([]);
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    // Kunci pengelompokan yang dimodifikasi untuk memisahkan pesanan admin
+    const groupBookingsByTrip = (data) => {
+        const grouped = {};
+        data.forEach(booking => {
+            // Buat kunci unik untuk setiap pesanan admin
+            // Jika pesanan admin (is_admin_order = true), gunakan cart_id sebagai kunci
+            // Jika pesanan agen (is_admin_order = false), gunakan kunci grouping yang ada
+            const groupKey = booking.is_admin_order
+                ? `admin-${booking.cart_id}`
+                : `agent-${booking.trip_date}-${booking.etd}-${booking.boat_name}-${booking.trip_route}-${booking.user_id}`;
+
+            if (!grouped[groupKey]) {
+                grouped[groupKey] = {
+                    ...booking,
+                    all_seats: 0,
+                    all_passenger_data: [],
+                    cart_ids: [],
+                };
+            }
+
+            const passengers = safeJsonParse(booking.passengers_data);
+            if (Array.isArray(passengers)) {
+                grouped[groupKey].all_passenger_data.push(...passengers);
+            }
+            grouped[groupKey].all_seats += booking.seats;
+            grouped[groupKey].cart_ids.push(booking.cart_id);
+        });
+
+        return Object.values(grouped);
+    };
 
     const fetchAllBookings = async () => {
         try {
             const response = await axios.get(`${API_URL}/api/booking/booking_orders/all`);
             const parsedBookings = response.data.map(booking => ({
                 ...booking,
-                passengers_data: JSON.parse(booking.passengers_data)
+                // Mengonversi nilai 0/1 dari database ke boolean
+                is_admin_order: !!booking.is_admin_order,
+                passengers_data: safeJsonParse(booking.passengers_data) || []
             }));
             setAllBookings(parsedBookings);
-            setBookings(parsedBookings);
 
             const boats = [...new Set(parsedBookings.map(b => b.boat_name))];
-            // --- Mengubah logika untuk tripOptions agar menyertakan ETD (Jam) ---
             const trips = [...new Set(parsedBookings.map(b => `${b.trip_route}|${b.etd}`))];
             const dates = [...new Set(parsedBookings.map(b => b.trip_date))];
             const agents = [...new Set(parsedBookings.map(b => b.agent_name))];
@@ -65,7 +122,6 @@ const Dashboard = () => {
             filtered = filtered.filter(booking => booking.boat_name === selectedBoat);
         }
         if (selectedTrip) {
-            // --- Mengubah logika filter untuk Trip, memisahkan rute dan jam ---
             const [route, etd] = selectedTrip.split("|");
             filtered = filtered.filter(booking => booking.trip_route === route && booking.etd === etd);
         }
@@ -75,22 +131,48 @@ const Dashboard = () => {
         if (selectedAgent) {
             filtered = filtered.filter(booking => booking.agent_name === selectedAgent);
         }
-        // --- Menambahkan logika filter berdasarkan nama penumpang ---
         if (passengerNameFilter) {
             const searchName = passengerNameFilter.toLowerCase();
-            filtered = filtered.filter(booking =>
-                booking.passengers_data.some(pax => pax.fullName.toLowerCase().includes(searchName))
-            );
+            filtered = filtered.filter(booking => {
+                const passengers = safeJsonParse(booking.passengers_data);
+                return Array.isArray(passengers) && passengers.some(pax => pax.fullName.toLowerCase().includes(searchName));
+            });
         }
-
-        setBookings(filtered);
+        const groupedBookings = groupBookingsByTrip(filtered);
+        setBookings(groupedBookings);
     }, [allBookings, selectedBoat, selectedTrip, selectedDate, selectedAgent, passengerNameFilter]);
 
     useEffect(() => {
         fetchAllBookings();
     }, []);
 
-    const handleDeleteBooking = async (cartId) => {
+    const handleUpdateStatus = async (cartIds, currentStatus) => {
+        if (isUpdating) {
+            return;
+        }
+
+        setIsUpdating(true);
+
+        const newStatus = currentStatus === 'Booked' ? 'Cek-in' : 'Booked';
+
+        try {
+            await axios.put(`${API_URL}/api/booking/update-status/bulk-update`, {
+                cart_ids: cartIds,
+                status: newStatus
+            });
+
+            await fetchAllBookings();
+
+            Swal.fire('Berhasil!', `Status diubah menjadi ${newStatus}.`, 'success');
+        } catch (err) {
+            console.error("Error updating status:", err);
+            Swal.fire('Gagal!', 'Gagal memperbarui status.', 'error');
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    const handleDeleteBooking = async (cartIds) => {
         const result = await Swal.fire({
             title: 'Konfirmasi Penghapusan',
             text: "Apakah Anda yakin ingin menghapus pesanan ini? Aksi ini tidak dapat dibatalkan.",
@@ -104,36 +186,18 @@ const Dashboard = () => {
 
         if (result.isConfirmed) {
             try {
-                await axios.delete(`${API_URL}/api/booking/booking_orders/${cartId}`);
-                setAllBookings(allBookings.filter(b => b.cart_id !== cartId));
-                setBookings(bookings.filter(b => b.cart_id !== cartId));
+                await axios.delete(`${API_URL}/api/booking/booking_orders/bulk-delete`, {
+                    data: { cart_ids: cartIds }
+                });
+
+                fetchAllBookings();
+
                 Swal.fire('Dihapus!', 'Pemesanan berhasil dihapus.', 'success');
             } catch (err) {
                 console.error("Error deleting booking:", err);
                 Swal.fire('Gagal!', 'Gagal menghapus pemesanan.', 'error');
             }
         }
-    };
-
-    const handleUpdateStatus = async (cartId, currentStatus) => {
-        const newStatus = currentStatus === 'Booked' ? 'Cek-in' : 'Booked';
-        try {
-            await axios.put(`${API_URL}/api/booking/update-status/${cartId}`, { status: newStatus });
-            setAllBookings(allBookings.map(booking =>
-                booking.cart_id === cartId ? { ...booking, status: newStatus } : booking
-            ));
-            setBookings(bookings.map(booking =>
-                booking.cart_id === cartId ? { ...booking, status: newStatus } : booking
-            ));
-            Swal.fire('Berhasil!', `Status diubah menjadi ${newStatus}.`, 'success');
-        } catch (err) {
-            console.error("Error updating status:", err);
-            Swal.fire('Gagal!', 'Gagal memperbarui status.', 'error');
-        }
-    };
-
-    const handleExportFilteredPdf = () => {
-        Swal.fire('Gagal!', 'Fungsi PDF sedang non-aktif. Mohon gunakan tombol Export Excel.', 'info');
     };
 
     const handleExportFilteredExcel = () => {
@@ -151,19 +215,22 @@ const Dashboard = () => {
 
         const exportData = [];
         checkedInBookings.forEach(booking => {
-            booking.passengers_data.forEach(pax => {
-                exportData.push({
-                    'No.': '',
-                    'Nama Penumpang': pax.fullName,
-                    'Kategori Penumpang': `${booking.passenger_category} (${booking.passenger_type})`,
-                    'Trip': booking.trip_route,
-                    'Tanggal Trip': booking.trip_date,
-                    'Jam Keberangkatan': booking.etd,
-                    'Nama Agen': booking.agent_name,
-                    'Kode Pemesanan': booking.cart_id,
-                    'Status': booking.status,
+            const passengers = booking.all_passenger_data;
+            if (Array.isArray(passengers)) {
+                passengers.forEach(pax => {
+                    exportData.push({
+                        'No.': '',
+                        'Nama Penumpang': pax.fullName,
+                        'Kategori Penumpang': `${pax.type}`,
+                        'Trip': booking.trip_route,
+                        'Tanggal Trip': booking.trip_date,
+                        'Jam Keberangkatan': booking.etd,
+                        'Nama Agen': booking.agent_name,
+                        'Kode Pemesanan': booking.user_id,
+                        'Status': booking.status,
+                    });
                 });
-            });
+            }
         });
 
         let no = 1;
@@ -217,8 +284,6 @@ const Dashboard = () => {
             <div className="mb-8 p-4 bg-white rounded-xl shadow-md sticky top-20 z-10">
                 <div className="flex flex-wrap gap-4 items-center">
                     <h3 className="text-lg font-semibold text-gray-800">Filter:</h3>
-
-                    {/* Baris 1: Filter Dropdown dan Date */}
                     <select
                         className="form-select border rounded-md p-2 w-full sm:w-auto"
                         value={selectedBoat}
@@ -259,10 +324,9 @@ const Dashboard = () => {
                         ))}
                     </select>
 
-                    {/* Baris 2: Input Pencarian Penumpang dan Tombol Export */}
                     <input
                         type="text"
-                        className="form-input border rounded-md p-2 w-full sm:w-auto  sm:mt-0"
+                        className="form-input border rounded-md p-2 w-full sm:w-auto sm:mt-0"
                         placeholder="Cari nama penumpang..."
                         value={passengerNameFilter}
                         onChange={(e) => setPassengerNameFilter(e.target.value)}
@@ -281,10 +345,9 @@ const Dashboard = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-3">
                 {bookings.length > 0 ? (
-                    bookings.map((booking) => (
+                    bookings.map((booking, index) => (
                         <div
-                            key={booking.cart_id}
-                            id={`booking-card-${booking.cart_id}`}
+                            key={index}
                             className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 p-6 border-t-4 border-indigo-500"
                         >
                             <div className="flex justify-between items-center mb-4">
@@ -292,26 +355,24 @@ const Dashboard = () => {
                                     <h2 className="text-2xl font-bold text-gray-900">{booking.trip_route}</h2>
                                     <span className="text-lg text-indigo-600 font-semibold">{booking.boat_name}</span>
                                 </div>
-
                                 <div className="flex items-center space-x-2">
                                     <div className="flex items-center space-x-2">
-                                        <label htmlFor={`status-toggle-${booking.cart_id}`} className="flex items-center cursor-pointer">
+                                        <label htmlFor={`status-toggle-${index}`} className="flex items-center cursor-pointer">
                                             <div className="relative">
                                                 <input
                                                     type="checkbox"
-                                                    id={`status-toggle-${booking.cart_id}`}
+                                                    id={`status-toggle-${index}`}
                                                     className="sr-only"
                                                     checked={booking.status === 'Cek-in'}
-                                                    onChange={() => handleUpdateStatus(booking.cart_id, booking.status)}
+                                                    onChange={() => handleUpdateStatus(booking.cart_ids, booking.status)}
                                                 />
                                                 <div className={`block w-14 h-8 rounded-full transition-colors duration-200 ease-in-out ${booking.status === 'Cek-in' ? 'bg-green-500' : 'bg-gray-400'}`}></div>
                                                 <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full shadow transition-transform duration-200 ease-in-out ${booking.status === 'Cek-in' ? 'transform translate-x-6' : ''}`}></div>
                                             </div>
                                         </label>
                                     </div>
-
                                     <button
-                                        onClick={() => handleDeleteBooking(booking.cart_id)}
+                                        onClick={() => handleDeleteBooking(booking.cart_ids)}
                                         className="p-2 rounded-full text-red-500 hover:bg-red-100 hover:text-red-700 transition-colors duration-200"
                                         title="Hapus Pemesanan"
                                     >
@@ -327,15 +388,17 @@ const Dashboard = () => {
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <span className="font-medium">Jam Keberangkatan:</span>
-                                    <span>{booking.etd}</span>
+                                    <span>{booking.etd.substring(0, 5)}</span>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <span className="font-medium">Jumlah Kursi:</span>
-                                    <span>{booking.seats}</span>
+                                    <span>{booking.all_seats}</span>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                    <span className="font-medium">Kategori:</span>
-                                    <span className="capitalize">{booking.passenger_category} ({booking.passenger_type})</span>
+                                    <span className="font-medium">Detail:</span>
+                                    <span className="capitalize">
+                                        {getPassengerSummary(booking.all_passenger_data)}
+                                    </span>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <span className="font-medium">Tanggal Order:</span>
@@ -344,6 +407,12 @@ const Dashboard = () => {
                                 <div className="flex items-center space-x-2">
                                     <span className="font-medium">Nama Agen:</span>
                                     <span>{booking.agent_name}</span>
+                                    {/* Tambahkan label ini untuk pesanan admin */}
+                                    {booking.is_admin_order && (
+                                        <span className="ml-2 px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                            Pemesanan Admin
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <span className="font-medium">Kode Agen:</span>
@@ -359,9 +428,9 @@ const Dashboard = () => {
                                     </span>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                    {booking.passengers_data.map((pax, index) => (
+                                    {booking.all_passenger_data && booking.all_passenger_data.map((pax, paxIndex) => (
                                         <span
-                                            key={`${pax.fullName}-${index}`}
+                                            key={`${pax.fullName}-${paxIndex}`}
                                             className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full border border-blue-200"
                                         >
                                             {pax.fullName}

@@ -1,11 +1,10 @@
+// Login.js
 import { useState } from "react";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 
-// Tambahkan prop onLoginSuccess di sini
 export default function Login({ onLoginSuccess }) {
     const navigate = useNavigate();
-
     const [nama, setNama] = useState("");
     const [kodeAgen, setKodeAgen] = useState("");
     const [loading, setLoading] = useState(false);
@@ -48,6 +47,7 @@ export default function Login({ onLoginSuccess }) {
                 return;
             }
 
+            // --- PERUBAHAN DI SINI ---
             if (data.token) {
                 localStorage.setItem("token", data.token);
             }
@@ -62,25 +62,35 @@ export default function Login({ onLoginSuccess }) {
                     showConfirmButton: false,
                     timer: 2000,
                 });
-
-                // Panggil prop ini untuk memberitahu komponen App
-                onLoginSuccess();
-
-                // Redirect ke halaman dashboard admin
-                setTimeout(() => {
-                    navigate("/");
-                }, 1500);
-
+            } else if (data.agen.role === 'agen') {
+                Swal.fire({
+                    toast: true,
+                    position: "top-end",
+                    icon: "success",
+                    title: "Login agen berhasil!",
+                    showConfirmButton: false,
+                    timer: 2000,
+                });
             } else {
                 Swal.fire({
                     toast: true,
                     position: "top-end",
                     icon: "error",
-                    title: "Anda tidak memiliki akses sebagai admin.",
+                    title: "Anda tidak memiliki akses yang valid.",
                     showConfirmButton: false,
                     timer: 3000,
                 });
+                // Hentikan proses jika peran tidak valid
+                return;
             }
+
+            // Panggil prop ini untuk memberitahu komponen App bahwa login berhasil
+            onLoginSuccess(data.agen.role);
+
+            // Redirect ke halaman dashboard
+            setTimeout(() => {
+                navigate("/");
+            }, 1500);
 
         } catch (err) {
             console.error(err);
