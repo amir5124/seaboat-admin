@@ -64,7 +64,7 @@ const Dashboard = () => {
             // Jika pesanan agen (is_admin_order = false), gunakan kunci grouping yang ada
             const groupKey = booking.is_admin_order
                 ? `admin-${booking.cart_id}`
-                : `agent-${booking.trip_date}-${booking.etd}-${booking.boat_name}-${booking.trip_route}-${booking.user_id}`;
+                : `agent-${booking.trip_date}-${booking.etd}-${booking.boat_name}-${booking.trip_route}-${booking.user_id}-${booking.created_at}`;
 
             if (!grouped[groupKey]) {
                 grouped[groupKey] = {
@@ -216,12 +216,14 @@ const Dashboard = () => {
         const exportData = [];
         checkedInBookings.forEach(booking => {
             const passengers = booking.all_passenger_data;
+
             if (Array.isArray(passengers)) {
                 passengers.forEach(pax => {
                     exportData.push({
                         'No.': '',
                         'Nama Penumpang': pax.fullName,
                         'Kategori Penumpang': `${pax.type}`,
+                        'Tipe Penumpang': `${booking.passenger_type}`, // Menambahkan kolom baru
                         'Trip': booking.trip_route,
                         'Tanggal Trip': booking.trip_date,
                         'Jam Keberangkatan': booking.etd,
@@ -395,6 +397,10 @@ const Dashboard = () => {
                                     <span>{booking.all_seats}</span>
                                 </div>
                                 <div className="flex items-center space-x-2">
+                                    <span className="font-medium">Jenis Penumpang:</span>
+                                    <span>{booking.passenger_type}</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
                                     <span className="font-medium">Detail:</span>
                                     <span className="capitalize">
                                         {getPassengerSummary(booking.all_passenger_data)}
@@ -408,7 +414,7 @@ const Dashboard = () => {
                                     <span className="font-medium">Nama Agen:</span>
                                     <span>{booking.agent_name}</span>
                                     {/* Tambahkan label ini untuk pesanan admin */}
-                                    {booking.is_admin_order && (
+                                    {!!booking.is_admin_order && (
                                         <span className="ml-2 px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
                                             Pemesanan Admin
                                         </span>

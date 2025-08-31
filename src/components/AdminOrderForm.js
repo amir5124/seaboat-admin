@@ -31,7 +31,6 @@ const AdminOrderForm = () => {
     const [availableSeats, setAvailableSeats] = useState(null);
     const [loading, setLoading] = useState(false);
     const [passengers, setPassengers] = useState([]);
-    const [isTripPassed, setIsTripPassed] = useState(false); // State baru untuk cek waktu ETD
 
     useEffect(() => {
         const fetchData = async () => {
@@ -86,21 +85,8 @@ const AdminOrderForm = () => {
             if (boat_id && route_from && route_to && trip_date && etd) {
                 setLoading(true);
                 setAvailableSeats(null);
-                setIsTripPassed(false); // Reset status ETD
 
                 const formattedDate = `${trip_date.getFullYear()}-${String(trip_date.getMonth() + 1).padStart(2, '0')}-${String(trip_date.getDate()).padStart(2, '0')}`;
-
-                // Validasi Waktu ETD di sisi klien
-                const now = new Date();
-                const etdTime = new Date(`${formattedDate}T${etd}`);
-
-                if (now > etdTime) {
-                    Swal.fire("Gagal", "Maaf, waktu keberangkatan sudah lewat.", "error");
-                    setIsTripPassed(true); // Set state ETD sudah lewat
-                    setAvailableSeats(0);
-                    setLoading(false);
-                    return;
-                }
 
                 try {
                     const params = {
@@ -110,7 +96,7 @@ const AdminOrderForm = () => {
                         trip_date: formattedDate,
                         etd,
                     };
-                    const res = await axios.get(`${API_URL}/api/availability`, { params });
+                    const res = await axios.get(`${API_URL}/api/availability/admin`, { params });
                     const selectedTrip = trips.find(t => t.trip_id === res.data.trip_id);
 
                     // Validasi Sisa Kursi
@@ -177,7 +163,6 @@ const AdminOrderForm = () => {
             trip_route: "",
         }));
         setAvailableSeats(null);
-        setIsTripPassed(false);
     };
 
     const handleRouteFromChange = (e) => {
@@ -191,7 +176,6 @@ const AdminOrderForm = () => {
             trip_route: "",
         }));
         setAvailableSeats(null);
-        setIsTripPassed(false);
     };
 
     const handleRouteToChange = (e) => {
@@ -204,7 +188,6 @@ const AdminOrderForm = () => {
             trip_route: "",
         }));
         setAvailableSeats(null);
-        setIsTripPassed(false);
     };
 
     const handleETDChange = (e) => {
@@ -216,7 +199,6 @@ const AdminOrderForm = () => {
             trip_route: "",
         }));
         setAvailableSeats(null);
-        setIsTripPassed(false);
     };
 
     const handleDateChange = (date) => {
@@ -231,7 +213,6 @@ const AdminOrderForm = () => {
             trip_route: "",
         }));
         setAvailableSeats(null);
-        setIsTripPassed(false);
     };
 
     const handlePassengerNameChange = (index, e) => {
@@ -266,18 +247,6 @@ const AdminOrderForm = () => {
                 return;
             }
 
-            // Validasi Waktu ETD (tambahan)
-            const formattedDate = `${formData.trip_date.getFullYear()}-${String(formData.trip_date.getMonth() + 1).padStart(2, '0')}-${String(formData.trip_date.getDate()).padStart(2, '0')}`;
-            const now = new Date();
-            const etdTime = new Date(`${formattedDate}T${formData.etd}`);
-
-            if (now > etdTime) {
-                Swal.fire("Gagal", "Maaf, waktu keberangkatan sudah lewat.", "error");
-                setLoading(false);
-                return;
-            }
-
-
             const passengerCategory = formData.adult_seats > 0 && formData.child_seats > 0
                 ? "adult_and_child"
                 : formData.adult_seats > 0
@@ -290,6 +259,8 @@ const AdminOrderForm = () => {
                 fullName: p.name,
                 type: p.type
             }));
+
+            const formattedDate = `${formData.trip_date.getFullYear()}-${String(formData.trip_date.getMonth() + 1).padStart(2, '0')}-${String(formData.trip_date.getDate()).padStart(2, '0')}`;
 
             const payload = {
                 user_id: formData.user_id,
@@ -304,7 +275,7 @@ const AdminOrderForm = () => {
                 etd: formData.etd,
                 status: formData.status,
                 passengers_data: JSON.stringify(formattedPassengersData),
-                is_admin_order: true,
+                is_admin_order: true, // Tambahkan properti ini untuk identifikasi di backend
             };
 
             const res = await axios.post(`${API_URL}/api/cart/admin/create-order`, payload);
@@ -382,7 +353,6 @@ const AdminOrderForm = () => {
                                 selected={formData.trip_date}
                                 onChange={handleDateChange}
                                 dateFormat="dd/MM/yyyy"
-                                minDate={new Date()}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
@@ -571,7 +541,6 @@ const AdminOrderForm = () => {
                             required
                             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-
                             <option value="Cek-in">Cek-in</option>
                             <option value="Booked">Booked</option>
                         </select>
@@ -580,7 +549,7 @@ const AdminOrderForm = () => {
                     <div className="flex justify-center">
                         <button
                             type="submit"
-                            disabled={loading || availableSeats === null || availableSeats < (formData.adult_seats + formData.child_seats) || isTripPassed}
+                            disabled={loading || availableSeats === null || availableSeats < (formData.adult_seats + formData.child_seats)}
                             className="w-full md:w-auto px-8 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400"
                         >
                             {loading ? "Menyimpan..." : "Buat Pemesanan"}
