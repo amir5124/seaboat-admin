@@ -199,12 +199,7 @@ const Agen = () => {
                                 <div className="card-body text-center">
                                     <h5 className="card-title">{agen.nama}</h5>
                                     <p className="card-text">Kode: {agen.kode_agen}</p>
-                                    <button
-                                        className="btn btn-sm btn-warning me-2"
-                                        onClick={() => handleEdit(agen)}
-                                    >
-                                        Edit
-                                    </button>
+
                                     <button
                                         className="btn btn-sm btn-danger ml-2"
                                         onClick={() => handleDelete(agen.id)}
