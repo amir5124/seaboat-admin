@@ -8,6 +8,7 @@ import { saveAs } from 'file-saver';
 
 const API_URL = "https://maruti.linku.co.id";
 
+// Helper untuk parsing JSON sederhana
 const safeJsonParse = (data) => {
     if (typeof data === 'string') {
         try {
@@ -18,6 +19,31 @@ const safeJsonParse = (data) => {
         }
     }
     return data;
+};
+
+// Helper baru untuk parsing agent_notes yang di-stringfy satu atau dua kali
+const safeParseNotes = (notesString) => {
+    // Jika data bukan string, kembalikan array kosong
+    if (typeof notesString !== 'string') {
+        return [];
+    }
+
+    try {
+        let notes = JSON.parse(notesString);
+        // Jika hasil parse pertama adalah string, coba parse lagi
+        if (typeof notes === 'string') {
+            notes = JSON.parse(notes);
+        }
+        // Pastikan hasil akhir adalah array
+        if (Array.isArray(notes)) {
+            return notes;
+        }
+    } catch (e) {
+        console.error("Failed to parse agent notes:", e);
+    }
+
+    // Jika semua percobaan gagal, kembalikan array kosong
+    return [];
 };
 
 const getPassengerSummary = (passengers) => {
@@ -55,13 +81,9 @@ const Dashboard = () => {
     const [agentOptions, setAgentOptions] = useState([]);
     const [isUpdating, setIsUpdating] = useState(false);
 
-    // Kunci pengelompokan yang dimodifikasi untuk memisahkan pesanan admin
     const groupBookingsByTrip = (data) => {
         const grouped = {};
         data.forEach(booking => {
-            // Buat kunci unik untuk setiap pesanan admin
-            // Jika pesanan admin (is_admin_order = true), gunakan cart_id sebagai kunci
-            // Jika pesanan agen (is_admin_order = false), gunakan kunci grouping yang ada
             const groupKey = booking.is_admin_order
                 ? `admin-${booking.cart_id}`
                 : `agent-${booking.trip_date}-${booking.etd}-${booking.boat_name}-${booking.trip_route}-${booking.user_id}-${booking.created_at}`;
@@ -72,6 +94,8 @@ const Dashboard = () => {
                     all_seats: 0,
                     all_passenger_data: [],
                     cart_ids: [],
+                    // Catatan agen akan disimpan dalam array
+                    agentNotes: []
                 };
             }
 
@@ -81,6 +105,17 @@ const Dashboard = () => {
             }
             grouped[groupKey].all_seats += booking.seats;
             grouped[groupKey].cart_ids.push(booking.cart_id);
+
+            // Gunakan helper safeParseNotes yang baru di sini
+            const parsedNotes = safeParseNotes(booking.agent_notes);
+            if (Array.isArray(parsedNotes) && parsedNotes.length > 0) {
+                // Hanya tambahkan catatan jika belum ada di dalam array
+                parsedNotes.forEach(note => {
+                    if (!grouped[groupKey].agentNotes.includes(note)) {
+                        grouped[groupKey].agentNotes.push(note);
+                    }
+                });
+            }
         });
 
         return Object.values(grouped);
@@ -216,20 +251,23 @@ const Dashboard = () => {
         const exportData = [];
         checkedInBookings.forEach(booking => {
             const passengers = booking.all_passenger_data;
+            const agentNotes = booking.agentNotes.join(', ') || '';
 
             if (Array.isArray(passengers)) {
-                passengers.forEach(pax => {
+                passengers.forEach((pax, paxIndex) => {
                     exportData.push({
                         'No.': '',
                         'Nama Penumpang': pax.fullName,
                         'Kategori Penumpang': `${pax.type}`,
-                        'Tipe Penumpang': `${booking.passenger_type}`, // Menambahkan kolom baru
+                        'Tipe Penumpang': `${booking.passenger_type}`,
                         'Trip': booking.trip_route,
                         'Tanggal Trip': booking.trip_date,
                         'Jam Keberangkatan': booking.etd,
                         'Nama Agen': booking.agent_name,
                         'Kode Pemesanan': booking.user_id,
                         'Status': booking.status,
+                        // Tambahkan catatan hanya pada baris pertama per pemesanan
+                        'Catatan Agen': paxIndex === 0 ? agentNotes : '',
                     });
                 });
             }
@@ -411,11 +449,10 @@ const Dashboard = () => {
                                     <span>{booking.created_at ? new Date(booking.created_at).toLocaleDateString() : 'N/A'}</span>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                    <span className="font-medium">Nama Agen:</span>
+                                    <span className="font-medium">Agen:</span>
                                     <span>{booking.agent_name}</span>
-                                    {/* Tambahkan label ini untuk pesanan admin */}
                                     {!!booking.is_admin_order && (
-                                        <span className="ml-2 px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                        <span className="ml-2 px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 text-center">
                                             Pemesanan Admin
                                         </span>
                                     )}
@@ -424,7 +461,20 @@ const Dashboard = () => {
                                     <span className="font-medium">Kode Agen:</span>
                                     <span>{booking.user_id}</span>
                                 </div>
+                                {booking.agentNotes && booking.agentNotes.length > 0 && (
+                                    <div className="">
+                                        <span className="font-medium">Catatan Agen</span>
+                                        <ul className="list-disc list-inside text-sm text-gray-600">
+                                            {booking.agentNotes.map((note, noteIndex) => (
+                                                <li key={noteIndex}>{note}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
                             </div>
+
+
 
                             <div className="mt-6 border-t border-gray-200 pt-4">
                                 <div className="flex justify-between items-center mb-2">
