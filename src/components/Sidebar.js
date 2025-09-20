@@ -14,7 +14,7 @@ function Sidebar({ isOpen, toggle, userRole }) {
                 </button>
             </div>
 
-            <h4 className="text-2xl font-bold mb-6 mt-4">Maruti Admin</h4>
+            <h4 className="text-2xl font-bold mb-6 mt-4">Seaboat Admin</h4>
             <ul className="nav flex-column space-y-2">
                 <li className="nav-item">
                     <Link className="nav-link text-white hover:bg-gray-700 p-2 rounded-md flex items-center" to="/" onClick={toggle}>
@@ -27,14 +27,25 @@ function Sidebar({ isOpen, toggle, userRole }) {
                     <>
                         <li className="nav-item">
                             <Link className="nav-link text-white hover:bg-gray-700 p-2 rounded-md flex items-center" to="/boats" onClick={toggle}>
-                                <FaShip className="me-2" /> Kapal
+                                <FaShip className="me-2" /> Kapal Seaboat
                             </Link>
                         </li>
+                        {/* <li className="nav-item">
+                            <Link className="nav-link text-white hover:bg-gray-700 p-2 rounded-md flex items-center" to="/tiketboats" onClick={toggle}>
+                                <FaShip className="me-2" /> Kapal Tiket Boat
+                            </Link>
+                        </li> */}
                         <li className="nav-item">
                             <Link className="nav-link text-white hover:bg-gray-700 p-2 rounded-md flex items-center" to="/trips" onClick={toggle}>
-                                <FaRoute className="me-2" /> Trip
+                                <FaRoute className="me-2" /> Trip Seaboat
                             </Link>
                         </li>
+                        {/* <li className="nav-item">
+                            <Link className="nav-link text-white hover:bg-gray-700 p-2 rounded-md flex items-center" to="/tiketboattrips" onClick={toggle}>
+                                <FaRoute className="me-2" /> Trip Tiket Boat
+                            </Link>
+                        </li> */}
+
                         {/* <li className="nav-item">
                             <Link className="nav-link text-white hover:bg-gray-700 p-2 rounded-md flex items-center" to="/seats" onClick={toggle}>
                                 <FaChair className="me-2" /> Kursi
@@ -43,21 +54,7 @@ function Sidebar({ isOpen, toggle, userRole }) {
                     </>
                 )}
 
-                {/* === Tautan untuk Admin dan Agen === */}
-                {(userRole === 'admin' || userRole === 'agen') && (
-                    <li className="nav-item">
-                        <Link className="nav-link text-white hover:bg-gray-700 p-2 rounded-md flex items-center" to="/admin-order" onClick={toggle}>
-                            <FaPlusCircle className="me-2" /> Buat Pesanan
-                        </Link>
-                    </li>
-                )}
 
-                {/* Tautan untuk Admin dan Agen */}
-                <li className="nav-item">
-                    <Link className="nav-link text-white hover:bg-gray-700 p-2 rounded-md flex items-center" to="/agen" onClick={toggle}>
-                        <FaUser className="me-2" /> Agen
-                    </Link>
-                </li>
             </ul>
         </div>
     );

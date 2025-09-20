@@ -8,10 +8,12 @@ import Seats from "./components/Seats";
 import Agen from "./components/Agen";
 import Navbar from "./components/Navbar";
 import Login from "./components/Login";
+import TiketBoats from "./components/TiketBoats";
 
 // === Import komponen baru ===
 import AdminOrderForm from "./components/AdminOrderForm";
 import UnauthorizedRedirect from "./components/UnauthorizedRedirect";
+import TripboatTemplates from "./components/TripboatTemplates";
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -99,12 +101,29 @@ function App() {
                   }
                 />
 
+                <Route
+                  path="/tiketboats"
+                  element={
+                    (userRole === 'admin')
+                      ? <TiketBoats />
+                      : <UnauthorizedRedirect />
+                  }
+                />
+
                 {/* Rute untuk Trips: hanya bisa diakses oleh admin */}
                 <Route
                   path="/trips"
                   element={
                     (userRole === 'admin')
                       ? <Trips />
+                      : <UnauthorizedRedirect />
+                  }
+                />
+                <Route
+                  path="/tiketboattrips"
+                  element={
+                    (userRole === 'admin')
+                      ? <TripboatTemplates />
                       : <UnauthorizedRedirect />
                   }
                 />

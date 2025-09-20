@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import swal from "sweetalert";
 import axios from "axios";
 
-const Boats = () => {
-    const [boats, setBoats] = useState([]);
+const TiketBoats = () => {
+    const [tiketBoats, setTiketBoats] = useState([]);
     const [boatName, setBoatName] = useState("");
     const [capacity, setCapacity] = useState("");
     const [image, setImage] = useState(null);
@@ -15,18 +15,18 @@ const Boats = () => {
     const API_URL = "https://api.seaboat.my.id";
 
     useEffect(() => {
-        fetchBoats();
+        fetchTiketBoats();
     }, []);
 
-    const fetchBoats = async () => {
+    const fetchTiketBoats = async () => {
         try {
             setLoading(true);
-            // Sesuaikan endpoint jika perlu, misalnya '/api/boats'
-            const { data } = await axios.get(`${API_URL}/api/boats`);
-            setBoats(data);
+            // SESUAIKAN ENDPOINT DENGAN YANG SUDAH KITA BUAT SEBELUMNYA
+            const { data } = await axios.get(`${API_URL}/api/tiketboats`);
+            setTiketBoats(data);
         } catch (err) {
-            console.error("Error fetching boats:", err);
-            swal("Gagal", "Tidak dapat mengambil data kapal. Cek koneksi server.", "error");
+            console.error("Error fetching tiket boats:", err);
+            swal("Gagal", "Tidak dapat mengambil data kapal tiketboat. Cek koneksi server.", "error");
         } finally {
             setLoading(false);
         }
@@ -51,33 +51,34 @@ const Boats = () => {
                 buttons: false,
                 closeOnClickOutside: false,
                 closeOnEsc: false,
-
             });
 
             if (editId) {
-                await axios.put(`${API_URL}/api/boats/${editId}`, formData, {
+                // SESUAIKAN ENDPOINT UNTUK UPDATE
+                await axios.put(`${API_URL}/api/tiketboats/${editId}`, formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
-                swal("Sukses!", "Kapal berhasil diperbarui", "success");
+                swal("Sukses!", "kapal berhasil diperbarui", "success");
             } else {
-                await axios.post(`${API_URL}/api/boats`, formData, {
+                // SESUAIKAN ENDPOINT UNTUK CREATE
+                await axios.post(`${API_URL}/api/tiketboats`, formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
-                swal("Sukses!", "Kapal berhasil ditambahkan", "success");
+                swal("Sukses!", "kapal berhasil ditambahkan", "success");
             }
 
             resetForm();
-            fetchBoats();
+            fetchTiketBoats();
         } catch (err) {
-            console.error("Error saving boat:", err);
+            console.error("Error saving tiket boat:", err);
             swal("Gagal!", "Terjadi kesalahan saat menyimpan data. Pastikan semua data valid.", "error");
         }
     };
 
-    const handleEdit = (boat) => {
-        setEditId(boat.boat_id);
-        setBoatName(boat.boat_name);
-        setCapacity(boat.capacity);
+    const handleEdit = (tiketBoat) => {
+        setEditId(tiketBoat.boat_id);
+        setBoatName(tiketBoat.boat_name);
+        setCapacity(tiketBoat.capacity);
         setShowForm(true);
     };
 
@@ -105,9 +106,10 @@ const Boats = () => {
                 });
 
                 try {
-                    await axios.delete(`${API_URL}/api/boats/${id}`);
-                    swal("Sukses!", "Kapal berhasil dihapus", "success");
-                    fetchBoats();
+                    // SESUAIKAN ENDPOINT UNTUK DELETE
+                    await axios.delete(`${API_URL}/api/tiketboats/${id}`);
+                    swal("Sukses!", "kapal berhasil dihapus", "success");
+                    fetchTiketBoats();
 
                     if (editId === id) {
                         setEditId(null);
@@ -116,7 +118,7 @@ const Boats = () => {
                         setShowForm(false);
                     }
                 } catch (err) {
-                    console.error("Error deleting boat:", err);
+                    console.error("Error deleting tiket boat:", err);
                     swal("Gagal!", "Terjadi kesalahan saat menghapus kapal", "error");
                 }
             }
@@ -133,7 +135,7 @@ const Boats = () => {
 
     return (
         <div className="container pt-20">
-            <h3 className="mb-3">Manajemen Kapal</h3>
+            <h3 className="mb-3">Manajemen kapal</h3>
 
             <button
                 className="btn btn-success mb-3"
@@ -145,12 +147,12 @@ const Boats = () => {
                     setImage(null);
                 }}
             >
-                Tambah Kapal
+                Tambah kapal
             </button>
 
             {showForm && (
                 <div className="card mb-4 p-3">
-                    <h4>{editId ? "Edit Kapal" : "Tambah Kapal"}</h4>
+                    <h4>{editId ? "Edit kapal" : "Tambah kapal"}</h4>
                     <form onSubmit={handleSubmit}>
                         <div className="form-group mb-2">
                             <label>Nama Kapal</label>
@@ -201,14 +203,14 @@ const Boats = () => {
                         </div>
                         <p className="mt-2">Mengambil data kapal...</p>
                     </div>
-                ) : boats.length > 0 ? (
-                    boats.map((boat) => (
-                        <div className="col-md-4 mb-4" key={boat.boat_id}>
+                ) : tiketBoats.length > 0 ? (
+                    tiketBoats.map((tiketBoat) => (
+                        <div className="col-md-4 mb-4" key={tiketBoat.boat_id}>
                             <div className="card shadow-sm h-100">
-                                {boat.image_url ? (
+                                {tiketBoat.image_url ? (
                                     <img
-                                        src={`${API_URL}${boat.image_url.startsWith("/") ? boat.image_url : "/" + boat.image_url}`}
-                                        alt={boat.boat_name}
+                                        src={`${API_URL}${tiketBoat.image_url.startsWith("/") ? tiketBoat.image_url : "/" + tiketBoat.image_url}`}
+                                        alt={tiketBoat.boat_name}
                                         className="card-img-top"
                                         style={{ height: "200px", objectFit: "cover" }}
                                     />
@@ -227,19 +229,19 @@ const Boats = () => {
                                     </div>
                                 )}
                                 <div className="card-body text-center">
-                                    <h5 className="card-title">{boat.boat_name}</h5>
+                                    <h5 className="card-title">{tiketBoat.boat_name}</h5>
                                     <p className="card-text">
-                                        Kapasitas: {boat.capacity} kursi
+                                        Kapasitas: {tiketBoat.capacity} kursi
                                     </p>
                                     <button
                                         className="btn btn-sm btn-warning me-2"
-                                        onClick={() => handleEdit(boat)}
+                                        onClick={() => handleEdit(tiketBoat)}
                                     >
                                         Edit
                                     </button>
                                     <button
                                         className="btn btn-sm btn-danger ml-2"
-                                        onClick={() => handleDelete(boat.boat_id)}
+                                        onClick={() => handleDelete(tiketBoat.boat_id)}
                                     >
                                         Hapus
                                     </button>
@@ -257,4 +259,4 @@ const Boats = () => {
     );
 };
 
-export default Boats;
+export default TiketBoats;
