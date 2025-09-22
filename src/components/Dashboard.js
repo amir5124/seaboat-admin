@@ -7,9 +7,22 @@ import { FaTrashAlt, FaFilePdf, FaFileExcel, FaInfoCircle } from 'react-icons/fa
 import Swal from "sweetalert2";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { Modal } from 'react-bootstrap'; // Pastikan Anda mengimpor Modal jika masih menggunakannya
 
 // API_URL tetap
 const API_URL = "https://api.seaboat.my.id";
+
+// Fungsi untuk mendapatkan kelas styling berdasarkan status
+const getStatusStyle = (status) => {
+    switch (status.toLowerCase()) {
+        case 'cek-in':
+            return 'bg-green-100 text-green-800'; // Latar belakang hijau muda, teks hijau tua
+        case 'booked':
+            return 'bg-yellow-100 text-yellow-800'; // Latar belakang kuning muda, teks kuning tua
+        default:
+            return 'bg-gray-100 text-gray-800'; // Styling default
+    }
+};
 
 const getPassengerSummary = (passengers) => {
     const summary = {};
@@ -55,7 +68,6 @@ const Dashboard = () => {
             const response = await axios.get(`${API_URL}/api/booking_orders/all`);
             setAllBookings(response.data);
 
-            // Perbarui filter options dari data yang baru
             const boats = [...new Set(response.data.map(b => b.boat_name))];
             const trips = [...new Set(response.data.map(b => `${b.trip_route}|${b.etd}`))];
             const dates = [...new Set(response.data.map(b => b.trip_date))];
@@ -160,7 +172,7 @@ const Dashboard = () => {
             return;
         }
 
-        const checkedInBookings = bookings.filter(booking => booking.status === 'Cek-in');
+        const checkedInBookings = bookings.filter(booking => booking.status.toLowerCase() === 'cek-in');
 
         if (checkedInBookings.length === 0) {
             Swal.fire('Gagal!', 'Tidak ada pemesanan yang berstatus "Cek-in" dalam filter ini.', 'warning');
@@ -173,10 +185,11 @@ const Dashboard = () => {
 
             if (Array.isArray(passengers)) {
                 passengers.forEach((pax) => {
+                    const nationalityType = pax.nationality === 'Indonesian' ? 'Domestik' : 'Mancanegara';
                     exportData.push({
                         'No.': '',
                         'Nama Penumpang': pax.fullName,
-                        'Kategori Penumpang': `${pax.type}`,
+                        'Kategori Penumpang': `${pax.type} (${nationalityType})`,
                         'Tipe Trip': `${booking.trip_type}`,
                         'Rute': booking.trip_route,
                         'Tanggal Trip': booking.trip_date,
@@ -202,14 +215,6 @@ const Dashboard = () => {
         Swal.fire('Berhasil!', 'Laporan Excel berhasil diunduh.', 'success');
     };
 
-    const getStatusStyle = (status) => {
-        switch (status) {
-            case 'Cek-in': return 'bg-green-100 text-green-800';
-            case 'Booked': return 'bg-blue-100 text-blue-800';
-            default: return 'bg-gray-100 text-gray-800';
-        }
-    };
-
     const BookingDetailModal = () => {
         if (!showDetailModal || !detailBookingData) return null;
 
@@ -232,7 +237,7 @@ const Dashboard = () => {
                                 <p><strong>Nama Pemesan:</strong> {detailBookingData.agent_name}</p>
                                 <p><strong>Email:</strong> {detailBookingData.user_id}</p>
                                 <p><strong>Nomor HP:</strong> {detailBookingData.mobile}</p>
-                                <p><strong>Status:</strong> <span className={`font-semibold ${detailBookingData.status === 'Cek-in' ? 'text-green-600' : 'text-blue-600'}`}>{detailBookingData.status}</span></p>
+                                <p><strong>Status:</strong> <span className={`font-semibold ${getStatusStyle(detailBookingData.status)}`}>{detailBookingData.status}</span></p>
                                 <p><strong>Tanggal Order:</strong> {new Date(detailBookingData.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                                 <p>
                                     <strong>Total Harga:</strong> Rp {parseInt(detailBookingData.total_price).toLocaleString('id-ID', {
@@ -262,7 +267,9 @@ const Dashboard = () => {
                                                 <div className="flex flex-wrap gap-2">
                                                     {item.passengers && item.passengers.length > 0 ? (
                                                         item.passengers.map((pax, paxIndex) => (
-                                                            <span key={paxIndex} className="bg-blue-200 text-blue-900 text-xs font-medium px-2.5 py-1 rounded-full">{pax.fullName} ({pax.type})</span>
+                                                            <span key={paxIndex} className="bg-blue-200 text-blue-900 text-xs font-medium px-2.5 py-1 rounded-full">
+                                                                {pax.fullName} ({pax.type}) - {pax.nationality === 'Indonesian' ? 'Domestik' : 'Mancanegara'}
+                                                            </span>
                                                         ))
                                                     ) : (
                                                         <span className="text-gray-500 italic text-sm">Tidak ada data penumpang.</span>

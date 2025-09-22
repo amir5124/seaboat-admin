@@ -1,13 +1,13 @@
+// Di file baru TripComponent.js
 import React, { useState, useEffect } from "react";
-import { useParams } from 'react-router-dom';
 import axios from "axios";
 import swal from "sweetalert";
 import { Modal } from 'react-bootstrap';
 
 const API_URL = "https://api.seaboat.my.id";
 
-const Trips = () => {
-    const { remarkType } = useParams(); // Mengambil parameter dari URL
+// Menerima prop remarkValue
+const TripComponent = ({ remarkValue }) => {
     const [templateData, setTemplateData] = useState({
         boat_id: "",
         trip_type: "",
@@ -19,7 +19,7 @@ const Trips = () => {
         price_child_indo: "",
         price_adult_foreigner: "",
         price_child_foreigner: "",
-        remark: remarkType?.toUpperCase() || "" // Mengisi remark dari URL
+        remark: remarkValue || ""
     });
     const [boats, setBoats] = useState([]);
     const [tripTemplates, setTripTemplates] = useState([]);
@@ -56,16 +56,14 @@ const Trips = () => {
         fetchBoats();
     }, []);
 
-    // Mengambil template berdasarkan remarkType dari URL
+    // Mengambil semua template, lalu memfilter di frontend
     const fetchTripTemplates = async () => {
         setLoadingTemplates(true);
         try {
-            let url = `${API_URL}/api/trips/templates`;
-            if (remarkType) {
-                url = `${API_URL}/api/trips/templates/remark/${remarkType.toUpperCase()}`;
-            }
-            const res = await axios.get(url);
-            setTripTemplates(res.data);
+            const res = await axios.get(`${API_URL}/api/trips/templates`);
+            // LAKUKAN FILTER DI SINI
+            const filteredTemplates = res.data.filter(template => template.remark === remarkValue);
+            setTripTemplates(filteredTemplates);
         } catch (err) {
             console.error(err);
             swal("Gagal!", "Tidak bisa mengambil data templates", "error");
@@ -75,11 +73,10 @@ const Trips = () => {
     };
 
     useEffect(() => {
-        // Panggil fetchTripTemplates setiap kali remarkType berubah
+        // Panggil fetchTripTemplates setiap kali remarkValue berubah
         fetchTripTemplates();
-        // Reset remark di state templateData saat remarkType berubah
-        setTemplateData(prev => ({ ...prev, remark: remarkType?.toUpperCase() || "" }));
-    }, [remarkType]);
+        setTemplateData(prev => ({ ...prev, remark: remarkValue || "" }));
+    }, [remarkValue]);
 
     const handleChange = (e) => {
         const { name, value, type } = e.target;
@@ -131,7 +128,7 @@ const Trips = () => {
                 price_child_indo: "",
                 price_adult_foreigner: "",
                 price_child_foreigner: "",
-                remark: remarkType?.toUpperCase() || ""
+                remark: remarkValue || ""
             });
             setShowModal(false);
             setEditingId(null);
@@ -172,7 +169,7 @@ const Trips = () => {
             price_child_indo: "",
             price_adult_foreigner: "",
             price_child_foreigner: "",
-            remark: remarkType?.toUpperCase() || "" // Mengisi remark secara otomatis
+            remark: remarkValue || "" // Mengisi remark secara otomatis
         });
         setEditingId(null);
         setShowModal(true);
@@ -192,7 +189,7 @@ const Trips = () => {
             price_child_indo: "",
             price_adult_foreigner: "",
             price_child_foreigner: "",
-            remark: remarkType?.toUpperCase() || ""
+            remark: remarkValue || ""
         });
     };
 
@@ -242,23 +239,12 @@ const Trips = () => {
         })}` : "-";
     };
 
-    // Fungsi untuk mendapatkan judul halaman berdasarkan remarkType
     const getTitle = () => {
-        switch (remarkType) {
-            case 'seaboat': return 'Trip Seaboat';
-            case 'tiketboat': return 'Trip Tiketboat';
-            case 'harbour': return 'Trip Harbour Transfer';
+        switch (remarkValue) {
+            case 'SEABOAT': return 'Trip Seaboat';
+            case 'TIKETBOAT': return 'Trip Tiketboat';
+            case 'HARBOUR': return 'Trip Harbour Transfer';
             default: return 'Manajemen Trip';
-        }
-    };
-
-    // Fungsi untuk mendapatkan nama remark yang ditampilkan di form
-    const getRemarkName = () => {
-        switch (remarkType) {
-            case 'seaboat': return 'SEABOAT';
-            case 'tiketboat': return 'TIKETBOAT';
-            case 'harbour': return 'HARBOUR TRANSFER';
-            default: return 'Pilih Remark';
         }
     };
 
@@ -273,7 +259,6 @@ const Trips = () => {
                 Tambah Template Trip
             </button>
 
-            {/* --- Modal untuk Form Tambah/Edit --- */}
             <Modal show={showModal} onHide={handleCloseModal}>
                 <Modal.Header closeButton>
                     <Modal.Title>
@@ -360,7 +345,6 @@ const Trips = () => {
                             />
                         </div>
 
-                        {/* --- Tambah Input Fields Harga Baru --- */}
                         <div className="form-group">
                             <label>Harga Dewasa (WNI)</label>
                             <input
@@ -402,17 +386,14 @@ const Trips = () => {
                                 onChange={handleChange}
                             />
                         </div>
-
-                        {/* Remark field now depends on remarkType */}
                         <div className="form-group">
                             <label>Remark</label>
                             <input
                                 type="text"
                                 className="form-control"
                                 name="remark"
-                                value={getRemarkName()}
-                                onChange={handleChange} // Tetap ada agar nilai bisa diubah jika perlu
-                                disabled={!!remarkType} // Disable jika ada remarkType di URL
+                                value={remarkValue}
+                                disabled
                             />
                         </div>
                         <div className="mt-3">
@@ -481,4 +462,4 @@ const Trips = () => {
     );
 };
 
-export default Trips;
+export default TripComponent;

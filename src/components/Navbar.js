@@ -58,9 +58,9 @@ function Navbar({ toggle, isSidebarOpen, onLogout }) {
                 {/* 2. ELEMEN SISI KANAN: Ikon Admin dan Dropdown */}
                 {/* --- Tambahkan ref dan posisi relatif untuk dropdown --- */}
                 <div className="relative flex items-center space-x-2" ref={dropdownRef}>
-                    <span className="text-gray-700 font-medium hidden md:block">Admin</span>
+                    {/* <span className="text-gray-700 font-medium hidden md:block">Admin</span> */}
 
-                    {/* --- Tombol untuk membuka/menutup dropdown --- */}
+
                     <button
                         className="text-gray-600 hover:text-gray-800 transition-colors"
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -68,8 +68,8 @@ function Navbar({ toggle, isSidebarOpen, onLogout }) {
                         <FaUserCircle size={28} />
                     </button>
 
-                    {/* --- Dropdown Menu, hanya tampil jika isDropdownOpen true --- */}
-                    {isDropdownOpen && (
+
+                    {/* {isDropdownOpen && (
                         <div className="absolute right-0 top-10 mt-2 w-48 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
                             <button
                                 onClick={handleLogoutClick}
@@ -78,7 +78,7 @@ function Navbar({ toggle, isSidebarOpen, onLogout }) {
                                 Logout
                             </button>
                         </div>
-                    )}
+                    )} */}
                 </div>
             </div>
         </nav>

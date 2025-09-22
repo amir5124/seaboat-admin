@@ -1,60 +1,146 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import { FaTachometerAlt, FaShip, FaRoute, FaChair, FaUser, FaTimes, FaPlusCircle } from "react-icons/fa";
+import React, { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { FaTachometerAlt, FaShip, FaCaretDown, FaCaretUp, FaRoute, FaTimes, FaPlusCircle } from "react-icons/fa";
 
 function Sidebar({ isOpen, toggle, userRole }) {
+    const [isFleetMenuOpen, setIsFleetMenuOpen] = useState(false);
+    const [isTripMenuOpen, setIsTripMenuOpen] = useState(false); // State baru untuk menu trip
+    const location = useLocation();
+
+    // Fungsi untuk mengecek apakah path saat ini sesuai dengan link.
+    const isActive = (path) => {
+        return location.pathname === path;
+    };
+
+    // Fungsi untuk mengecek apakah salah satu sub-menu armada aktif.
+    const isFleetActive = () => {
+        return isActive('/boats-seaboat') || isActive('/boats-tiketboat') || isActive('/boats-carharbour');
+    };
+
+    // Fungsi untuk mengecek apakah salah satu sub-menu trip aktif.
+    const isTripActive = () => {
+        return isActive('/trips/seaboat') || isActive('/trips/tiketboat') || isActive('/trips/harbour');
+    };
+
     return (
         <div
-            className={`fixed top-0 left-0 h-screen w-64 bg-gray-800 text-white p-5 shadow-lg z-50 transition-transform duration-300 ease-in-out md:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"
-                }`}
+            className={`fixed top-0 left-0 h-screen w-64 bg-gray-800 text-gray-300 p-5 shadow-xl z-50 transition-all duration-300 ease-in-out md:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
         >
             <div className="md:hidden flex justify-end">
-                <button onClick={toggle} className="text-white hover:text-gray-300">
+                <button onClick={toggle} className="text-gray-400 hover:text-white transition-colors duration-200">
                     <FaTimes size={24} />
                 </button>
             </div>
 
-            <h4 className="text-2xl font-bold mb-6 mt-4">Seaboat Admin</h4>
-            <ul className="nav flex-column space-y-2">
-                <li className="nav-item">
-                    <Link className="nav-link text-white hover:bg-gray-700 p-2 rounded-md flex items-center" to="/" onClick={toggle}>
-                        <FaTachometerAlt className="me-2" /> Dashboard
+            <div className="flex items-center space-x-2 mb-8">
+                <FaShip className="text-3xl text-orange-400" />
+                <h4 className="text-2xl font-extrabold text-white">Seaboat Admin</h4>
+            </div>
+
+            <ul className="space-y-2 font-medium">
+                <li>
+                    <Link
+                        className={`flex items-center p-3 rounded-lg transition-colors duration-200 ${isActive('/') ? 'bg-gray-700 text-orange-400' : 'hover:bg-gray-700'}`}
+                        to="/"
+                        onClick={toggle}
+                    >
+                        <FaTachometerAlt className="me-3" />
+                        Dashboard
                     </Link>
                 </li>
 
-                {/* Tautan hanya untuk Admin */}
                 {userRole === 'admin' && (
                     <>
-                        <li className="nav-item">
-                            <Link className="nav-link text-white hover:bg-gray-700 p-2 rounded-md flex items-center" to="/boats" onClick={toggle}>
-                                <FaShip className="me-2" /> Kapal Seaboat
-                            </Link>
+                        <li>
+                            <button
+                                className={`flex items-center justify-between w-full p-3 rounded-lg transition-colors duration-200 ${isFleetActive() ? 'bg-gray-700 text-orange-400' : 'hover:bg-gray-700'}`}
+                                onClick={() => setIsFleetMenuOpen(!isFleetMenuOpen)}
+                            >
+                                <span className="flex items-center">
+                                    <FaShip className="me-3" />
+                                    Manajemen Armada
+                                </span>
+                                {isFleetMenuOpen ? <FaCaretUp /> : <FaCaretDown />}
+                            </button>
+                            {isFleetMenuOpen && (
+                                <ul className="mt-2 space-y-1 pl-6 border-l border-gray-600">
+                                    <li>
+                                        <Link
+                                            className={`flex items-center p-2 rounded-lg transition-colors duration-200 ${isActive('/boats-seaboat') ? 'bg-gray-600 text-orange-400' : 'hover:bg-gray-600'}`}
+                                            to="/boats-seaboat"
+                                            onClick={toggle}
+                                        >
+                                            <FaPlusCircle className="me-2 text-xs" /> Kapal Seaboat
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link
+                                            className={`flex items-center p-2 rounded-lg transition-colors duration-200 ${isActive('/boats-tiketboat') ? 'bg-gray-600 text-orange-400' : 'hover:bg-gray-600'}`}
+                                            to="/boats-tiketboat"
+                                            onClick={toggle}
+                                        >
+                                            <FaPlusCircle className="me-2 text-xs" /> Kapal Tiketboat
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link
+                                            className={`flex items-center p-2 rounded-lg transition-colors duration-200 ${isActive('/boats-carharbour') ? 'bg-gray-600 text-orange-400' : 'hover:bg-gray-600'}`}
+                                            to="/boats-carharbour"
+                                            onClick={toggle}
+                                        >
+                                            <FaPlusCircle className="me-2 text-xs" /> Car Harbour
+                                        </Link>
+                                    </li>
+                                </ul>
+                            )}
                         </li>
-                        {/* <li className="nav-item">
-                            <Link className="nav-link text-white hover:bg-gray-700 p-2 rounded-md flex items-center" to="/tiketboats" onClick={toggle}>
-                                <FaShip className="me-2" /> Kapal Tiket Boat
-                            </Link>
-                        </li> */}
-                        <li className="nav-item">
-                            <Link className="nav-link text-white hover:bg-gray-700 p-2 rounded-md flex items-center" to="/trips" onClick={toggle}>
-                                <FaRoute className="me-2" /> Trip Seaboat
-                            </Link>
+                        <li>
+                            {/* Tombol drop down untuk menu Trips */}
+                            <button
+                                className={`flex items-center justify-between w-full p-3 rounded-lg transition-colors duration-200 ${isTripActive() ? 'bg-gray-700 text-orange-400' : 'hover:bg-gray-700'}`}
+                                onClick={() => setIsTripMenuOpen(!isTripMenuOpen)}
+                            >
+                                <span className="flex items-center">
+                                    <FaRoute className="me-3" />
+                                    Manajemen Trip
+                                </span>
+                                {isTripMenuOpen ? <FaCaretUp /> : <FaCaretDown />}
+                            </button>
+                            {/* Sub-menu untuk Trips */}
+                            {isTripMenuOpen && (
+                                <ul className="mt-2 space-y-1 pl-6 border-l border-gray-600">
+                                    <li>
+                                        <Link
+                                            className={`flex items-center p-2 rounded-lg transition-colors duration-200 ${isActive('/trips/seaboat') ? 'bg-gray-600 text-orange-400' : 'hover:bg-gray-600'}`}
+                                            to="/trips/seaboat"
+                                            onClick={toggle}
+                                        >
+                                            <FaPlusCircle className="me-2 text-xs" /> Trip Seaboat
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link
+                                            className={`flex items-center p-2 rounded-lg transition-colors duration-200 ${isActive('/trips/tiketboat') ? 'bg-gray-600 text-orange-400' : 'hover:bg-gray-600'}`}
+                                            to="/trips/tiketboat"
+                                            onClick={toggle}
+                                        >
+                                            <FaPlusCircle className="me-2 text-xs" /> Trip Tiketboat
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link
+                                            className={`flex items-center p-2 rounded-lg transition-colors duration-200 ${isActive('/trips/harbour') ? 'bg-gray-600 text-orange-400' : 'hover:bg-gray-600'}`}
+                                            to="/trips/harbour"
+                                            onClick={toggle}
+                                        >
+                                            <FaPlusCircle className="me-2 text-xs" /> Trip Harbour
+                                        </Link>
+                                    </li>
+                                </ul>
+                            )}
                         </li>
-                        {/* <li className="nav-item">
-                            <Link className="nav-link text-white hover:bg-gray-700 p-2 rounded-md flex items-center" to="/tiketboattrips" onClick={toggle}>
-                                <FaRoute className="me-2" /> Trip Tiket Boat
-                            </Link>
-                        </li> */}
-
-                        {/* <li className="nav-item">
-                            <Link className="nav-link text-white hover:bg-gray-700 p-2 rounded-md flex items-center" to="/seats" onClick={toggle}>
-                                <FaChair className="me-2" /> Kursi
-                            </Link>
-                        </li> */}
                     </>
                 )}
-
-
             </ul>
         </div>
     );
