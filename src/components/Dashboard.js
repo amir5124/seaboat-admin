@@ -1,5 +1,3 @@
-// Di file Dashboard.js
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import axios from "axios";
@@ -7,7 +5,7 @@ import { FaTrashAlt, FaFilePdf, FaFileExcel, FaInfoCircle } from 'react-icons/fa
 import Swal from "sweetalert2";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { Modal } from 'react-bootstrap'; // Pastikan Anda mengimpor Modal jika masih menggunakannya
+import { Modal } from 'react-bootstrap';
 
 // API_URL tetap
 const API_URL = "https://api.seaboat.my.id";
@@ -16,11 +14,11 @@ const API_URL = "https://api.seaboat.my.id";
 const getStatusStyle = (status) => {
     switch (status.toLowerCase()) {
         case 'cek-in':
-            return 'bg-green-100 text-green-800'; // Latar belakang hijau muda, teks hijau tua
+            return 'bg-green-100 text-green-800';
         case 'booked':
-            return 'bg-yellow-100 text-yellow-800'; // Latar belakang kuning muda, teks kuning tua
+            return 'bg-yellow-100 text-yellow-800';
         default:
-            return 'bg-gray-100 text-gray-800'; // Styling default
+            return 'bg-gray-100 text-gray-800';
     }
 };
 
@@ -50,13 +48,15 @@ const Dashboard = () => {
     const [selectedBoat, setSelectedBoat] = useState("");
     const [selectedTrip, setSelectedTrip] = useState("");
     const [selectedDate, setSelectedDate] = useState("");
-    const [selectedAgent, setSelectedAgent] = useState("");
+    // Menghapus state terkait agen:
+    // const [selectedAgent, setSelectedAgent] = useState("");
     const [passengerNameFilter, setPassengerNameFilter] = useState("");
 
     const [boatOptions, setBoatOptions] = useState([]);
     const [tripOptions, setTripOptions] = useState([]);
     const [dateOptions, setDateOptions] = useState([]);
-    const [agentOptions, setAgentOptions] = useState([]);
+    // Menghapus state opsi agen:
+    // const [agentOptions, setAgentOptions] = useState([]);
     const [isUpdating, setIsUpdating] = useState(false);
 
     const [showDetailModal, setShowDetailModal] = useState(false);
@@ -71,12 +71,14 @@ const Dashboard = () => {
             const boats = [...new Set(response.data.map(b => b.boat_name))];
             const trips = [...new Set(response.data.map(b => `${b.trip_route}|${b.etd}`))];
             const dates = [...new Set(response.data.map(b => b.trip_date))];
-            const agents = [...new Set(response.data.map(b => b.agent_name))];
+            // Menghapus baris yang mendapatkan data agen:
+            // const agents = [...new Set(response.data.map(b => b.agent_name))];
 
             setBoatOptions(boats);
             setTripOptions(trips);
             setDateOptions(dates);
-            setAgentOptions(agents);
+            // Menghapus baris yang mengatur opsi agen:
+            // setAgentOptions(agents);
 
         } catch (err) {
             console.error("Error fetching all booking data:", err);
@@ -99,9 +101,10 @@ const Dashboard = () => {
         if (selectedDate) {
             filtered = filtered.filter(booking => booking.trip_date === selectedDate);
         }
-        if (selectedAgent) {
-            filtered = filtered.filter(booking => booking.agent_name === selectedAgent);
-        }
+        // Menghapus logika filter agen:
+        // if (selectedAgent) {
+        //     filtered = filtered.filter(booking => booking.agent_name === selectedAgent);
+        // }
         if (passengerNameFilter) {
             const searchName = passengerNameFilter.toLowerCase();
             filtered = filtered.filter(booking => {
@@ -109,7 +112,7 @@ const Dashboard = () => {
             });
         }
         setBookings(filtered);
-    }, [allBookings, selectedBoat, selectedTrip, selectedDate, selectedAgent, passengerNameFilter]);
+    }, [allBookings, selectedBoat, selectedTrip, selectedDate, passengerNameFilter]); // Menghapus selectedAgent dari dependencies
 
     useEffect(() => {
         fetchAllBookings();
@@ -337,6 +340,8 @@ const Dashboard = () => {
                         value={selectedDate}
                         onChange={(e) => setSelectedDate(e.target.value)}
                     />
+                    {/* Hapus elemen select untuk filter agen */}
+                    {/*
                     <select
                         className="form-select border rounded-md p-2 w-full sm:w-auto"
                         value={selectedAgent}
@@ -347,6 +352,7 @@ const Dashboard = () => {
                             <option key={agent} value={agent}>{agent}</option>
                         ))}
                     </select>
+                    */}
                     <input
                         type="text"
                         className="form-input border rounded-md p-2 w-full sm:w-auto sm:mt-0"
