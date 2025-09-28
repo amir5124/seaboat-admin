@@ -10,11 +10,13 @@ import BoatManagement from "./components/BoatManagement";
 import AdminOrderForm from "./components/AdminOrderForm";
 import UnauthorizedRedirect from "./components/UnauthorizedRedirect";
 
-
 // Perbarui path impor untuk komponen trip
 import TripSeaboat from "./pages/TripSeaboat";
 import TripTiketboat from "./pages/TripTiketboat";
 import TripHarbour from "./pages/TripHarbour";
+
+// Import komponen TourManagement yang baru dibuat
+import TourManagement from "./components/TourManagement";
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -23,27 +25,6 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [isLoading, setIsLoading] = useState(false); // Langsung set ke false
   const [userRole, setUserRole] = useState("admin"); // Pilih peran: "admin" atau "agen"
-
-  // Hilangkan useEffect untuk mengabaikan logika login
-  // useEffect(() => {
-  //   const token = localStorage.getItem('token');
-  //   const agenData = localStorage.getItem('agen');
-  //
-  //   if (token && agenData) {
-  //     try {
-  //       const parsedAgen = JSON.parse(agenData);
-  //       setIsLoggedIn(true);
-  //       setUserRole(parsedAgen.role);
-  //     } catch (e) {
-  //       console.error("Failed to parse agen data from localStorage", e);
-  //       localStorage.removeItem('token');
-  //       localStorage.removeItem('agen');
-  //       setIsLoggedIn(false);
-  //       setUserRole(null);
-  //     }
-  //   }
-  //   setIsLoading(false);
-  // }, []);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -73,7 +54,6 @@ function App() {
 
   return (
     <Router>
-      {/* Hilangkan kondisi {!isLoggedIn ? ... : ...} */}
       <div className="flex min-h-screen bg-gray-100">
         <Navbar toggle={toggleSidebar} isSidebarOpen={isSidebarOpen} onLogout={handleLogout} />
         <Sidebar isOpen={isSidebarOpen} toggle={toggleSidebar} userRole={userRole} />
@@ -96,6 +76,12 @@ function App() {
               <Route path="/trips/seaboat" element={(userRole === 'admin') ? <TripSeaboat /> : <UnauthorizedRedirect />} />
               <Route path="/trips/tiketboat" element={(userRole === 'admin') ? <TripTiketboat /> : <UnauthorizedRedirect />} />
               <Route path="/trips/harbour" element={(userRole === 'admin') ? <TripHarbour /> : <UnauthorizedRedirect />} />
+
+              {/* === Rute Manajemen Paket Tur (Tambahan Baru) === */}
+              <Route
+                path="/tour-management"
+                element={(userRole === 'admin') ? <TourManagement /> : <UnauthorizedRedirect />}
+              />
 
               {/* === Rute Lainnya === */}
               <Route

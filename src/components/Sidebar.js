@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FaTachometerAlt, FaShip, FaCaretDown, FaCaretUp, FaRoute, FaTimes, FaPlusCircle } from "react-icons/fa";
+import { FaTachometerAlt, FaShip, FaCaretDown, FaCaretUp, FaRoute, FaTimes, FaPlusCircle, FaGlobe } from "react-icons/fa"; // Tambahkan FaGlobe
 
 function Sidebar({ isOpen, toggle, userRole }) {
     const [isFleetMenuOpen, setIsFleetMenuOpen] = useState(false);
-    const [isTripMenuOpen, setIsTripMenuOpen] = useState(false); // State baru untuk menu trip
+    const [isTripMenuOpen, setIsTripMenuOpen] = useState(false);
+    const [isTourMenuOpen, setIsTourMenuOpen] = useState(false); // State baru untuk menu tour
     const location = useLocation();
 
     // Fungsi untuk mengecek apakah path saat ini sesuai dengan link.
@@ -20,6 +21,11 @@ function Sidebar({ isOpen, toggle, userRole }) {
     // Fungsi untuk mengecek apakah salah satu sub-menu trip aktif.
     const isTripActive = () => {
         return isActive('/trips/seaboat') || isActive('/trips/tiketboat') || isActive('/trips/harbour');
+    };
+
+    // Fungsi baru untuk mengecek apakah menu tour aktif
+    const isTourActive = () => {
+        return isActive('/tour-management');
     };
 
     return (
@@ -95,7 +101,6 @@ function Sidebar({ isOpen, toggle, userRole }) {
                             )}
                         </li>
                         <li>
-                            {/* Tombol drop down untuk menu Trips */}
                             <button
                                 className={`flex items-center justify-between w-full p-3 rounded-lg transition-colors duration-200 ${isTripActive() ? 'bg-gray-700 text-orange-400' : 'hover:bg-gray-700'}`}
                                 onClick={() => setIsTripMenuOpen(!isTripMenuOpen)}
@@ -106,7 +111,6 @@ function Sidebar({ isOpen, toggle, userRole }) {
                                 </span>
                                 {isTripMenuOpen ? <FaCaretUp /> : <FaCaretDown />}
                             </button>
-                            {/* Sub-menu untuk Trips */}
                             {isTripMenuOpen && (
                                 <ul className="mt-2 space-y-1 pl-6 border-l border-gray-600">
                                     <li>
@@ -134,6 +138,33 @@ function Sidebar({ isOpen, toggle, userRole }) {
                                             onClick={toggle}
                                         >
                                             <FaPlusCircle className="me-2 text-xs" /> Trip Harbour
+                                        </Link>
+                                    </li>
+                                </ul>
+                            )}
+                        </li>
+
+                        {/* Menu baru untuk Tour Management */}
+                        <li>
+                            <button
+                                className={`flex items-center justify-between w-full p-3 rounded-lg transition-colors duration-200 ${isTourActive() ? 'bg-gray-700 text-orange-400' : 'hover:bg-gray-700'}`}
+                                onClick={() => setIsTourMenuOpen(!isTourMenuOpen)}
+                            >
+                                <span className="flex items-center">
+                                    <FaGlobe className="me-3" />
+                                    Manajemen Paket Tur
+                                </span>
+                                {isTourMenuOpen ? <FaCaretUp /> : <FaCaretDown />}
+                            </button>
+                            {isTourMenuOpen && (
+                                <ul className="mt-2 space-y-1 pl-6 border-l border-gray-600">
+                                    <li>
+                                        <Link
+                                            className={`flex items-center p-2 rounded-lg transition-colors duration-200 ${isActive('/tour-management') ? 'bg-gray-600 text-orange-400' : 'hover:bg-gray-600'}`}
+                                            to="/tour-management"
+                                            onClick={toggle}
+                                        >
+                                            <FaPlusCircle className="me-2 text-xs" /> Kelola Tur
                                         </Link>
                                     </li>
                                 </ul>
