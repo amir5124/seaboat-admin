@@ -62,12 +62,17 @@ const getPassengerSummary = (passengers) => {
 };
 
 // =================================================================
-// MODAL DETAIL (TIDAK BERUBAH)
+// MODAL DETAIL (SUDAH DIUBAH untuk Roundtrip/Oneway)
 // =================================================================
 const BookingDetailModal = ({ show, handleClose, detailBookingData }) => {
     if (!show || !detailBookingData) return null;
 
     const isTourBooking = detailBookingData.source_type === 'TOUR';
+
+    // --- LOGIKA MENENTUKAN ROUNDTRIP/ONEWAY (Modal) ---
+    const tripCount = detailBookingData.trip_details ? detailBookingData.trip_details.length : 0;
+    const serviceTypeDisplay = tripCount === 2 ? 'Roundtrip' : (tripCount === 1 ? 'Oneway' : 'N/A');
+    // ----------------------------------------------------
 
     return (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
@@ -93,7 +98,12 @@ const BookingDetailModal = ({ show, handleClose, detailBookingData }) => {
                                     maximumFractionDigits: 0
                                 })}
                             </p>
-                            <p><strong>Tipe Layanan:</strong> <span className="font-semibold">{isTourBooking ? 'TOUR' : 'FASTBOAT'}</span></p>
+
+                            {/* BARIS INI MENAMPILKAN ROUNDTRIP/ONEWAY DI MODAL */}
+                            <p>
+                                <strong>Tipe Layanan:</strong>
+                                <span className="font-semibold">{isTourBooking ? 'TOUR' : serviceTypeDisplay}</span>
+                            </p>
                         </div>
                     </div>
                     <div className="mt-6 border-t pt-4">
@@ -153,7 +163,7 @@ const BookingDetailModal = ({ show, handleClose, detailBookingData }) => {
 };
 
 // =================================================================
-// DASHBOARD COMPONENT (Perubahan Utama di fetchAllBookings)
+// DASHBOARD COMPONENT (SUDAH DIUBAH untuk Roundtrip/Oneway di kartu)
 // =================================================================
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -185,30 +195,25 @@ const Dashboard = () => {
     const [detailBookingData, setDetailBookingData] = useState(null);
 
     // =================================================================
-    // FUNGSI FETCH UTAMA (Sudah Diperbaiki)
+    // FUNGSI FETCH UTAMA
     // =================================================================
     const fetchAllBookings = async () => {
         try {
             const fastboatResponse = await axios.get(`${API_URL}/api/booking_orders/all`);
 
-            // FILTER KETAT: Membuang data yang kosong/error dari endpoint Fastboat,
-            // yang kemungkinan adalah data Tour yang seharusnya di endpoint /alltour.
             const filteredFastboatData = fastboatResponse.data.filter(b =>
                 (b.boat_name && b.boat_name !== '-') && (b.etd && b.etd !== '-')
             );
 
-            // Beri label source_type
             const fastboatData = filteredFastboatData.map(b => ({ ...b, source_type: 'FASTBOAT' }));
             setAllFastboatBookings(fastboatData);
 
-            // Ambil data Tour dari endpoint khusus
             const tourResponse = await axios.get(`${API_URL}/api/booking_orders/alltour`);
             const tourData = tourResponse.data.map(b => ({ ...b, source_type: 'TOUR' }));
             setAllTourBookings(tourData);
 
             const combinedBookings = [...fastboatData, ...tourData];
 
-            // Filter options
             const boats = [...new Set(fastboatData.map(b => b.boat_name || '-').filter(Boolean))];
             const tours = [...new Set(tourData.map(b => b.trip_route || b.tour_name || '-').filter(Boolean))];
 
@@ -231,12 +236,10 @@ const Dashboard = () => {
 
     // Efek untuk Filtering saat ada perubahan state
     useEffect(() => {
-        // 1. Tentukan data dasar berdasarkan tab aktif
         let baseData = activeTab === 'FASTBOAT' ? allFastboatBookings : allTourBookings;
-
         let filtered = baseData;
+        // ... (Logika filter lainnya tidak berubah) ...
 
-        // 2. Terapkan Filter
         if (selectedBoatOrTour) {
             filtered = filtered.filter(booking => {
                 const name = booking.source_type === 'TOUR' ? booking.trip_route || booking.tour_name : booking.boat_name;
@@ -305,7 +308,6 @@ const Dashboard = () => {
     };
 
     const handleViewDetails = (bookingId) => {
-        // Cari di kedua array
         const booking = [...allFastboatBookings, ...allTourBookings].find(b => b.booking_id === bookingId);
         if (booking) {
             setDetailBookingData(booking);
@@ -379,7 +381,7 @@ const Dashboard = () => {
         return (
             <div className="flex justify-center items-center h-screen bg-gray-100">
                 <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-indigo-500"></div>
-                <p className="ml-4 text-gray-500">Memuat data...</p>
+
             </div>
         );
     }
@@ -501,17 +503,24 @@ const Dashboard = () => {
                         const Icon = isTour ? FaGlobe : FaShip;
 
                         let nameLabel, routeLabel, primaryName, secondaryInfo;
+                        let tripTypeLabel; // Dideklarasikan di sini
 
                         if (isTour) {
                             nameLabel = 'Nama Tour/Layanan:';
                             routeLabel = 'Service:';
                             primaryName = booking.trip_route || booking.tour_name || 'NAMA TOUR KOSONG';
                             secondaryInfo = booking.service_type || 'N/A';
+                            tripTypeLabel = 'TOUR'; // Untuk Tour
                         } else {
                             nameLabel = 'Nama Kapal:';
                             routeLabel = 'Rute Trip:';
                             primaryName = booking.boat_name || '-';
                             secondaryInfo = booking.trip_route || '-';
+
+                            // === LOGIKA BARU DI KARTU RINGKASAN ===
+                            const tripCount = booking.trip_details ? booking.trip_details.length : 0;
+                            tripTypeLabel = tripCount === 2 ? 'Roundtrip' : (tripCount === 1 ? 'Oneway' : 'FASTBOAT');
+                            // =====================================
                         }
 
                         return (
@@ -522,7 +531,10 @@ const Dashboard = () => {
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center space-x-2">
                                         <Icon size={24} className="text-indigo-500" />
-                                        <h2 className="text-xl font-bold text-gray-900">{isTour ? 'TOUR' : 'FASTBOAT'}</h2>
+                                        {/* MENAMPILKAN ROUNDTRIP/ONEWAY/TOUR */}
+                                        <h2 className="text-xl font-bold text-gray-900">
+                                            {tripTypeLabel}
+                                        </h2>
                                     </div>
                                     <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getStatusStyle(booking.status || '-')}`}>
                                         {booking.status || '-'}
