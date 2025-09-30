@@ -6,12 +6,11 @@ import { FaTrash, FaEdit, FaPlus, FaTimes } from "react-icons/fa";
 // Ganti dengan URL API backend Anda yang sebenarnya
 const API_URL = "https://api.seaboat.my.id";
 
-
+// --- Fungsi formatPrice tetap sama ---
 const formatPrice = (price) => {
     // Memastikan harga adalah angka (atau string yang bisa dikonversi)
     const numericPrice = parseFloat(price);
     if (isNaN(numericPrice) || !price) return '0';
-
 
     return new Intl.NumberFormat('id-ID').format(numericPrice).replace(/,00$/, '');
 };
@@ -26,6 +25,7 @@ const TourManagement = () => {
     const [formData, setFormData] = useState({
         id: null,
         name: "",
+        service_type: "TOUR", // <--- Tambahkan service_type dengan default TOUR
         overview: "",
         highlights: [""],
         itinerary: [""],
@@ -107,6 +107,7 @@ const TourManagement = () => {
         setFormData({
             id: tour.id,
             name: tour.name,
+            service_type: tour.service_type || "TOUR", // <--- Pastikan service_type dimuat saat edit
             overview: tour.overview,
             highlights: tour.highlights || [""],
             itinerary: tour.trip_itinerary || [""], // Sesuaikan dengan nama kolom di model
@@ -148,6 +149,7 @@ const TourManagement = () => {
 
         const data = new FormData();
         data.append("name", formData.name);
+        data.append("service_type", formData.service_type); // <--- Kirim service_type
         data.append("overview", formData.overview);
 
         // Stringify Array Data untuk backend
@@ -169,15 +171,21 @@ const TourManagement = () => {
         // Append existing image URLs
         data.append("existingImages", JSON.stringify(formData.existingImages));
 
+        // Tambahkan method override untuk PUT karena formData
+        if (formData.id) {
+            data.append("_method", "PUT");
+        }
+
+
         try {
             if (formData.id) {
-                // UPDATE
+                // UPDATE: Gunakan axios.put() agar sesuai dengan Express router.put('/:id')
                 await axios.put(`${API_URL}/api/tours/${formData.id}`, data, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
                 swal("Sukses!", "Tur berhasil diperbarui.", "success");
             } else {
-                // CREATE
+                // CREATE: Tetap gunakan axios.post()
                 await axios.post(`${API_URL}/api/tours`, data, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
@@ -199,6 +207,7 @@ const TourManagement = () => {
         setFormData({
             id: null,
             name: "",
+            service_type: "TOUR", // <--- Reset ke default TOUR
             overview: "",
             highlights: [""],
             itinerary: [""],
@@ -213,6 +222,8 @@ const TourManagement = () => {
         });
         setShowModal(false);
     };
+
+    // --- Tampilan Komponen Tetap Sama ---
 
     return (
 
@@ -241,6 +252,7 @@ const TourManagement = () => {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">Nama Tur</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Tipe Layanan</th> {/* <--- Tambahkan kolom Tipe Layanan */}
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">Harga Dewasa (Domestik)</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gambar</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Aksi</th>
@@ -250,6 +262,13 @@ const TourManagement = () => {
                             {tours.map((tour) => (
                                 <tr key={tour.id}>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{tour.name}</td>
+
+                                    {/* Tampilan Tipe Layanan */}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${tour.service_type === 'FISHING' ? 'bg-indigo-100 text-indigo-800' : 'bg-green-100 text-green-800'}`}>
+                                            {tour.service_type}
+                                        </span>
+                                    </td>
 
                                     {/* Tampilan Harga dengan format Rupiah */}
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -310,7 +329,7 @@ const TourManagement = () => {
                         <form onSubmit={handleSubmit}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                 {/* Detail Utama */}
-                                <div className="col-span-2">
+                                <div className="col-span-1">
                                     <label className="block text-sm font-medium text-gray-700">Nama Tur</label>
                                     <input
                                         type="text"
@@ -321,6 +340,21 @@ const TourManagement = () => {
                                         required
                                     />
                                 </div>
+                                <div className="col-span-1"> {/* <--- Tambahkan input service_type */}
+                                    <label className="block text-sm font-medium text-gray-700">Tipe Layanan</label>
+                                    <select
+                                        name="service_type"
+                                        value={formData.service_type}
+                                        onChange={handleInputChange}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2.5"
+                                        required
+                                    >
+                                        <option value="TOUR">TOUR</option>
+                                        <option value="FISHING">FISHING</option>
+
+                                    </select>
+                                </div>
+
                                 <div className="col-span-2">
                                     <label className="block text-sm font-medium text-gray-700">Overview</label>
                                     <textarea
@@ -334,7 +368,6 @@ const TourManagement = () => {
                                 </div>
 
                                 {/* Bagian Array Inputs (Highlights, Itinerary, Inclusions, Exclusions) */}
-                                {/* Grid container dengan 2 kolom untuk tablet/desktop */}
                                 <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
 
                                     {/* Highlights */}
@@ -371,7 +404,8 @@ const TourManagement = () => {
 
                                     {/* Itinerary */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Itinerary</label>
+                                        {/* Sesuaikan label agar lebih umum */}
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Itinerary / Detail Waktu/Durasi</label>
                                         {formData.itinerary.map((item, index) => (
                                             <div key={index} className="flex items-center space-x-2 mb-2">
                                                 <input
@@ -379,7 +413,7 @@ const TourManagement = () => {
                                                     value={item}
                                                     onChange={(e) => handleArrayChange(e, index, "itinerary")}
                                                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                                    placeholder={`Itinerary ${index + 1}`}
+                                                    placeholder={`Detail ${index + 1}`}
                                                 />
                                                 {formData.itinerary.length > 1 && (
                                                     <button
@@ -397,7 +431,7 @@ const TourManagement = () => {
                                             onClick={() => handleAddArrayItem("itinerary")}
                                             className="mt-2 text-blue-500 hover:text-blue-700 font-medium"
                                         >
-                                            <FaPlus className="inline-block mr-1" /> Tambah Itinerary
+                                            <FaPlus className="inline-block mr-1" /> Tambah Detail Waktu
                                         </button>
                                     </div>
 
@@ -552,17 +586,17 @@ const TourManagement = () => {
                             </div>
                             <div className="flex justify-end space-x-4 mt-6">
                                 <button
-                                    type="submit"
-                                    className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300"
-                                >
-                                    {formData.id ? "Simpan Perubahan" : "Tambahkan Tur"}
-                                </button>
-                                <button
                                     type="button"
                                     onClick={resetForm}
-                                    className="px-6 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition-colors duration-300"
+                                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                                 >
                                     Batal
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
+                                >
+                                    {formData.id ? "Simpan Perubahan" : "Buat Tur"}
                                 </button>
                             </div>
                         </form>
