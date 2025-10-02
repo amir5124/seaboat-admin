@@ -10,10 +10,9 @@ import BoatManagement from "./components/BoatManagement";
 import AdminOrderForm from "./components/AdminOrderForm";
 import UnauthorizedRedirect from "./components/UnauthorizedRedirect";
 
-// Perbarui path impor untuk komponen trip
-import TripSeaboat from "./pages/TripSeaboat";
-import TripTiketboat from "./pages/TripTiketboat";
-import TripHarbour from "./pages/TripHarbour";
+// Hapus TripSeaboat, TripTiketboat, TripHarbour
+// Ganti dengan komponen Trips tunggal
+import Trips from "./components/Trips"; // Asumsi Trips.js berada di folder pages
 
 // Import komponen TourManagement yang baru dibuat
 import TourManagement from "./components/TourManagement";
@@ -72,10 +71,9 @@ function App() {
               <Route path="/boats-tiketboat" element={<BoatManagement serviceType="tiketboat" title="Manajemen Kapal Tiketboat" />} />
               <Route path="/boats-carharbour" element={<BoatManagement serviceType="carharbour" title="Manajemen Car Harbour" />} />
 
-              {/* === Rute Manajemen Trip === */}
-              <Route path="/trips/seaboat" element={(userRole === 'admin') ? <TripSeaboat /> : <UnauthorizedRedirect />} />
-              <Route path="/trips/tiketboat" element={(userRole === 'admin') ? <TripTiketboat /> : <UnauthorizedRedirect />} />
-              <Route path="/trips/harbour" element={(userRole === 'admin') ? <TripHarbour /> : <UnauthorizedRedirect />} />
+              {/* === Rute Manajemen Trip DINAMIS === */}
+              {/* Rute ini akan menangani /trips/seaboat, /trips/tiketboat, dan /trips/harbour */}
+              <Route path="/trips/:remarkType" element={(userRole === 'admin') ? <Trips /> : <UnauthorizedRedirect />} />
 
               {/* === Rute Manajemen Paket Tur (Tambahan Baru) === */}
               <Route
