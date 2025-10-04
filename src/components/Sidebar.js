@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FaTachometerAlt, FaShip, FaCaretDown, FaCaretUp, FaRoute, FaTimes, FaPlusCircle, FaGlobe } from "react-icons/fa"; // Tambahkan FaGlobe
+import { FaTachometerAlt, FaShip, FaCaretDown, FaCaretUp, FaRoute, FaTimes, FaPlusCircle, FaGlobe, FaAnchor } from "react-icons/fa"; // <--- Tambahkan FaAnchor atau ikon lain
 
 function Sidebar({ isOpen, toggle, userRole }) {
     const [isFleetMenuOpen, setIsFleetMenuOpen] = useState(false);
@@ -152,13 +152,14 @@ function Sidebar({ isOpen, toggle, userRole }) {
                             >
                                 <span className="flex items-center">
                                     <FaGlobe className="me-3" />
-                                    Manajemen Paket Tur
+                                    Manajemen Layanan
                                 </span>
                                 {isTourMenuOpen ? <FaCaretUp /> : <FaCaretDown />}
                             </button>
                             {isTourMenuOpen && (
                                 <ul className="mt-2 space-y-1 pl-6 border-l border-gray-600">
                                     <li>
+                                        {/* Tautan 1: Kelola Tur. Cek apakah path-nya /tour-management */}
                                         <Link
                                             className={`flex items-center p-2 rounded-lg transition-colors duration-200 ${isActive('/tour-management') ? 'bg-gray-600 text-orange-400' : 'hover:bg-gray-600'}`}
                                             to="/tour-management"
@@ -167,9 +168,31 @@ function Sidebar({ isOpen, toggle, userRole }) {
                                             <FaPlusCircle className="me-2 text-xs" /> Kelola Tur
                                         </Link>
                                     </li>
+                                    <li>
+                                        {/* Tautan 2: Kelola Fishing. HARUS cek apakah path-nya /fishing-management */}
+                                        <Link
+                                            className={`flex items-center p-2 rounded-lg transition-colors duration-200 ${isActive('/fishing-management') ? 'bg-gray-600 text-orange-400' : 'hover:bg-gray-600'}`}
+                                            to="/fishing-management"
+                                            onClick={toggle}
+                                        >
+                                            <FaPlusCircle className="me-2 text-xs" /> Kelola Fishing
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        {/* Tautan 3: Kelola Yacht (Sudah benar) */}
+                                        <Link
+                                            className={`flex items-center p-2 rounded-lg transition-colors duration-200 ${isActive('/management/yachts') ? 'bg-gray-600 text-orange-400' : 'hover:bg-gray-600'}`}
+                                            to="/management/yachts"
+                                            onClick={toggle}
+                                        >
+                                            <FaAnchor className="me-2 text-xs" /> Kelola Sewa Yacht
+                                        </Link>
+                                    </li>
                                 </ul>
                             )}
                         </li>
+
+
                     </>
                 )}
             </ul>

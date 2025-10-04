@@ -16,6 +16,8 @@ import Trips from "./components/Trips"; // Asumsi Trips.js berada di folder page
 
 // Import komponen TourManagement yang baru dibuat
 import TourManagement from "./components/TourManagement";
+import YachtManagement from "./components/YachtManagement";
+import FishingManagement from "./components/FishingManagement";
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -80,6 +82,10 @@ function App() {
                 path="/tour-management"
                 element={(userRole === 'admin') ? <TourManagement /> : <UnauthorizedRedirect />}
               />
+
+              <Route path="/management/yachts" element={<YachtManagement />} />
+
+              <Route path="/fishing-management" element={<FishingManagement />} />
 
               {/* === Rute Lainnya === */}
               <Route

@@ -6,7 +6,6 @@ import { FaTrash, FaEdit, FaPlus, FaTimes } from "react-icons/fa";
 // Ganti dengan URL API backend Anda yang sebenarnya
 const API_URL = "https://api.seaboat.my.id";
 
-// --- Fungsi formatPrice tetap sama ---
 const formatPrice = (price) => {
     const numericPrice = parseFloat(price);
     if (isNaN(numericPrice) || !price) return '0';
@@ -15,16 +14,15 @@ const formatPrice = (price) => {
 };
 
 
-const TourManagement = () => {
+const FishingManagement = () => { // Nama komponen diubah
     const [tours, setTours] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
 
-    // Inisialisasi state formData
     const [formData, setFormData] = useState({
         id: null,
         name: "",
-        service_type: "TOUR", // <-- Tetapkan default ke TOUR
+        service_type: "FISHING", // <-- Default diubah ke FISHING
         short_overview: "",
         overview: "",
         highlights: [""],
@@ -48,13 +46,13 @@ const TourManagement = () => {
             setLoading(true);
             const response = await axios.get(`${API_URL}/api/tours`);
 
-            // ⭐ PERUBAHAN UTAMA: Filter data hanya untuk 'TOUR'
-            const filteredTours = response.data.filter(item => item.service_type === 'TOUR');
+            // MODIFIKASI FILTER: Hanya tampilkan data 'FISHING'
+            const filteredTours = response.data.filter(item => item.service_type === 'FISHING');
             setTours(filteredTours);
 
         } catch (error) {
-            console.error("Error fetching tours:", error);
-            swal("Error", "Gagal mengambil data tur.", "error");
+            console.error("Error fetching fishing tours:", error);
+            swal("Error", "Gagal mengambil data memancing.", "error");
         } finally {
             setLoading(false);
         }
@@ -66,7 +64,6 @@ const TourManagement = () => {
     };
 
     const handleImageChange = (e) => {
-        // Gabungkan file baru ke array images
         setFormData({ ...formData, images: [...formData.images, ...e.target.files] });
     };
 
@@ -111,7 +108,7 @@ const TourManagement = () => {
         setFormData({
             id: tour.id,
             name: tour.name,
-            service_type: tour.service_type || "TOUR", // Pastikan tetap TOUR
+            service_type: tour.service_type || "FISHING", // Set default FISHING
             short_overview: tour.short_overview || "",
             overview: tour.overview,
             highlights: tour.highlights || [""],
@@ -140,11 +137,11 @@ const TourManagement = () => {
         if (willDelete) {
             try {
                 await axios.delete(`${API_URL}/api/tours/${id}`);
-                swal("Sukses!", "Tur berhasil dihapus.", "success");
+                swal("Sukses!", "Paket memancing berhasil dihapus.", "success");
                 fetchTours();
             } catch (error) {
-                console.error("Error deleting tour:", error);
-                swal("Error", "Gagal menghapus tur.", "error");
+                console.error("Error deleting fishing tour:", error);
+                swal("Error", "Gagal menghapus paket memancing.", "error");
             }
         }
     };
@@ -154,12 +151,10 @@ const TourManagement = () => {
 
         const data = new FormData();
         data.append("name", formData.name);
-        // data.append("service_type", formData.service_type); // Tidak perlu diubah, selalu TOUR
-        data.append("service_type", "TOUR"); // Dibuat eksplisit TOUR agar tidak bergantung pada input form
+        data.append("service_type", formData.service_type);
         data.append("short_overview", formData.short_overview);
         data.append("overview", formData.overview);
 
-        // Stringify Array Data untuk backend
         data.append("highlights", JSON.stringify(formData.highlights.filter(item => item !== "")));
         data.append("itinerary", JSON.stringify(formData.itinerary.filter(item => item !== "")));
         data.append("inclusions", JSON.stringify(formData.inclusions.filter(item => item !== "")));
@@ -170,15 +165,12 @@ const TourManagement = () => {
         data.append("price_foreigner_adult", formData.price_foreigner_adult);
         data.append("price_foreigner_child", formData.price_foreigner_child);
 
-        // Append new image files
         for (let i = 0; i < formData.images.length; i++) {
             data.append("images", formData.images[i]);
         }
 
-        // Append existing image URLs
         data.append("existingImages", JSON.stringify(formData.existingImages));
 
-        // Tambahkan method override untuk PUT karena formData
         if (formData.id) {
             data.append("_method", "PUT");
         }
@@ -186,27 +178,24 @@ const TourManagement = () => {
 
         try {
             if (formData.id) {
-                // UPDATE: Gunakan POST dengan _method=PUT untuk FormData
                 await axios.post(`${API_URL}/api/tours/${formData.id}`, data, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
-                swal("Sukses!", "Tur berhasil diperbarui.", "success");
+                swal("Sukses!", "Paket memancing berhasil diperbarui.", "success");
             } else {
-                // CREATE: Tetap gunakan axios.post()
                 await axios.post(`${API_URL}/api/tours`, data, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
-                swal("Sukses!", "Tur berhasil ditambahkan.", "success");
+                swal("Sukses!", "Paket memancing berhasil ditambahkan.", "success");
             }
             setShowModal(false);
             fetchTours();
         } catch (error) {
             console.error("Error submitting form:", error);
-            // Log error response dari server jika ada
             if (error.response && error.response.data) {
                 console.error("Server Response:", error.response.data);
             }
-            swal("Error", "Gagal menyimpan data tur. Cek koneksi API dan log server.", "error");
+            swal("Error", "Gagal menyimpan data paket memancing. Cek koneksi API dan log server.", "error");
         }
     };
 
@@ -214,7 +203,7 @@ const TourManagement = () => {
         setFormData({
             id: null,
             name: "",
-            service_type: "TOUR", // <-- Pastikan selalu reset ke TOUR
+            service_type: "FISHING", // Reset ke default FISHING
             short_overview: "",
             overview: "",
             highlights: [""],
@@ -231,12 +220,10 @@ const TourManagement = () => {
         setShowModal(false);
     };
 
-    // --- Tampilan Komponen ---
-
     return (
 
         <div className="container pt-20 ">
-            <h1 className="text-3xl font-bold text-gray-800 mb-6">Manajemen Paket Tur</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-6">Manajemen Paket Memancing (Fishing)</h1>
             <button
                 onClick={() => {
                     resetForm();
@@ -245,7 +232,7 @@ const TourManagement = () => {
                 className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-300 mb-6 flex items-center"
             >
                 <FaPlus className="mr-2" />
-                Tambah Tur Baru
+                Tambah Paket Memancing Baru
             </button>
 
             {loading ? (
@@ -254,12 +241,11 @@ const TourManagement = () => {
 
                 </div>
             ) : (
-                // Wrapper overflow-x-auto untuk tabel responsif di mobile
                 <div className="bg-white shadow-md rounded-lg overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">Nama Tur</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">Nama Paket</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Tipe Layanan</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">Deskripsi Singkat</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">Harga Dewasa (Domestik)</th>
@@ -268,15 +254,13 @@ const TourManagement = () => {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {/* Hanya menampilkan data TOUR karena sudah difilter di fetchTours() */}
                             {tours.map((tour) => (
                                 <tr key={tour.id}>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{tour.name}</td>
 
-                                    {/* Tampilan Tipe Layanan (akan selalu TOUR di sini) */}
+                                    {/* Pastikan ini selalu FISHING di halaman ini */}
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800`}>
-                                            {/* tour.service_type akan selalu 'TOUR' */}
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800`}>
                                             {tour.service_type}
                                         </span>
                                     </td>
@@ -285,7 +269,6 @@ const TourManagement = () => {
                                         {tour.short_overview}
                                     </td>
 
-                                    {/* Tampilan Harga dengan format Rupiah */}
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         Rp {formatPrice(tour.price_domestic_adult)}
                                     </td>
@@ -336,7 +319,7 @@ const TourManagement = () => {
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center z-50">
                     <div className="bg-white rounded-lg shadow-xl p-8 max-h-[90vh] overflow-y-auto max-w-4xl w-full mx-4">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-semibold text-gray-800">{formData.id ? "Edit Paket Tur" : "Tambah Paket Tur"}</h2>
+                            <h2 className="text-2xl font-semibold text-gray-800">{formData.id ? "Edit Paket Memancing" : "Tambah Paket Memancing"}</h2>
                             <button onClick={resetForm} className="text-gray-500 hover:text-gray-800">
                                 <FaTimes className="w-6 h-6" />
                             </button>
@@ -345,7 +328,7 @@ const TourManagement = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                 {/* Detail Utama */}
                                 <div className="col-span-1">
-                                    <label className="block text-sm font-medium text-gray-700">Nama Tur</label>
+                                    <label className="block text-sm font-medium text-gray-700">Nama Paket</label>
                                     <input
                                         type="text"
                                         name="name"
@@ -361,18 +344,15 @@ const TourManagement = () => {
                                         name="service_type"
                                         value={formData.service_type}
                                         onChange={handleInputChange}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2.5 bg-gray-100"
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2.5"
                                         required
-                                        disabled // ⭐ PERUBAHAN: Dinonaktifkan (atau disembunyikan)
                                     >
-                                        {/* ⭐ PERUBAHAN: HANYA tampilkan opsi TOUR */}
-                                        <option value="TOUR">TOUR</option>
+                                        {/* MODIFIKASI: Hanya tampilkan opsi FISHING */}
+                                        <option value="FISHING">FISHING</option>
                                     </select>
-                                    {/* Opsional: Tampilkan teks jika select dinonaktifkan */}
-                                    <p className="text-xs text-gray-500 mt-1">Tipe layanan ini adalah TOUR.</p>
                                 </div>
 
-                                {/* Input short_overview */}
+                                {/* ... (Input lainnya sama: short_overview, overview, highlights, dll.) */}
                                 <div className="col-span-2">
                                     <label className="block text-sm font-medium text-gray-700">Deskripsi Singkat (Max 255 Karakter)</label>
                                     <textarea
@@ -400,7 +380,6 @@ const TourManagement = () => {
 
                                 {/* Bagian Array Inputs (Highlights, Itinerary, Inclusions, Exclusions) - Dibiarkan sama */}
                                 <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-
                                     {/* Highlights */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">Highlights</label>
@@ -414,23 +393,11 @@ const TourManagement = () => {
                                                     placeholder={`Highlight ${index + 1}`}
                                                 />
                                                 {formData.highlights.length > 1 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRemoveArrayItem(index, "highlights")}
-                                                        className="text-red-500 hover:text-red-700"
-                                                    >
-                                                        <FaTimes />
-                                                    </button>
+                                                    <button type="button" onClick={() => handleRemoveArrayItem(index, "highlights")} className="text-red-500 hover:text-red-700"> <FaTimes /> </button>
                                                 )}
                                             </div>
                                         ))}
-                                        <button
-                                            type="button"
-                                            onClick={() => handleAddArrayItem("highlights")}
-                                            className="mt-2 text-blue-500 hover:text-blue-700 font-medium"
-                                        >
-                                            <FaPlus className="inline-block mr-1" /> Tambah Highlight
-                                        </button>
+                                        <button type="button" onClick={() => handleAddArrayItem("highlights")} className="mt-2 text-blue-500 hover:text-blue-700 font-medium"> <FaPlus className="inline-block mr-1" /> Tambah Highlight </button>
                                     </div>
 
                                     {/* Itinerary */}
@@ -446,23 +413,11 @@ const TourManagement = () => {
                                                     placeholder={`Detail ${index + 1}`}
                                                 />
                                                 {formData.itinerary.length > 1 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRemoveArrayItem(index, "itinerary")}
-                                                        className="text-red-500 hover:text-red-700"
-                                                    >
-                                                        <FaTimes />
-                                                    </button>
+                                                    <button type="button" onClick={() => handleRemoveArrayItem(index, "itinerary")} className="text-red-500 hover:text-red-700"> <FaTimes /> </button>
                                                 )}
                                             </div>
                                         ))}
-                                        <button
-                                            type="button"
-                                            onClick={() => handleAddArrayItem("itinerary")}
-                                            className="mt-2 text-blue-500 hover:text-blue-700 font-medium"
-                                        >
-                                            <FaPlus className="inline-block mr-1" /> Tambah Detail Waktu
-                                        </button>
+                                        <button type="button" onClick={() => handleAddArrayItem("itinerary")} className="mt-2 text-blue-500 hover:text-blue-700 font-medium"> <FaPlus className="inline-block mr-1" /> Tambah Detail Waktu </button>
                                     </div>
 
                                     {/* Inclusions */}
@@ -478,23 +433,11 @@ const TourManagement = () => {
                                                     placeholder={`Inclusions ${index + 1}`}
                                                 />
                                                 {formData.inclusions.length > 1 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRemoveArrayItem(index, "inclusions")}
-                                                        className="text-red-500 hover:text-red-700"
-                                                    >
-                                                        <FaTimes />
-                                                    </button>
+                                                    <button type="button" onClick={() => handleRemoveArrayItem(index, "inclusions")} className="text-red-500 hover:text-red-700"> <FaTimes /> </button>
                                                 )}
                                             </div>
                                         ))}
-                                        <button
-                                            type="button"
-                                            onClick={() => handleAddArrayItem("inclusions")}
-                                            className="mt-2 text-blue-500 hover:text-blue-700 font-medium"
-                                        >
-                                            <FaPlus className="inline-block mr-1" /> Tambah Inclusions
-                                        </button>
+                                        <button type="button" onClick={() => handleAddArrayItem("inclusions")} className="mt-2 text-blue-500 hover:text-blue-700 font-medium"> <FaPlus className="inline-block mr-1" /> Tambah Inclusions </button>
                                     </div>
 
                                     {/* Exclusions */}
@@ -510,27 +453,15 @@ const TourManagement = () => {
                                                     placeholder={`Exclusions ${index + 1}`}
                                                 />
                                                 {formData.exclusions.length > 1 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRemoveArrayItem(index, "exclusions")}
-                                                        className="text-red-500 hover:text-red-700"
-                                                    >
-                                                        <FaTimes />
-                                                    </button>
+                                                    <button type="button" onClick={() => handleRemoveArrayItem(index, "exclusions")} className="text-red-500 hover:text-red-700"> <FaTimes /> </button>
                                                 )}
                                             </div>
                                         ))}
-                                        <button
-                                            type="button"
-                                            onClick={() => handleAddArrayItem("exclusions")}
-                                            className="mt-2 text-blue-500 hover:text-blue-700 font-medium"
-                                        >
-                                            <FaPlus className="inline-block mr-1" /> Tambah Exclusions
-                                        </button>
+                                        <button type="button" onClick={() => handleAddArrayItem("exclusions")} className="mt-2 text-blue-500 hover:text-blue-700 font-medium"> <FaPlus className="inline-block mr-1" /> Tambah Exclusions </button>
                                     </div>
                                 </div>
 
-                                {/* Bagian Harga (2 kolom) */}
+                                {/* Bagian Harga (2 kolom) - Dibiarkan sama */}
                                 <div className="col-span-2 grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700">Harga Dewasa Domestik</label>
@@ -551,9 +482,9 @@ const TourManagement = () => {
                                 </div>
 
 
-                                {/* Bagian Gambar */}
+                                {/* Bagian Gambar - Dibiarkan sama */}
                                 <div className="col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700">Gambar Tur</label>
+                                    <label className="block text-sm font-medium text-gray-700">Gambar Paket Memancing</label>
 
                                     {/* Preview gambar yang sudah ada (existingImages) */}
                                     {formData.existingImages.length > 0 && (
@@ -596,7 +527,7 @@ const TourManagement = () => {
 
                             <div className="mt-6 flex justify-end space-x-3">
                                 <button type="button" onClick={resetForm} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"> Batal </button>
-                                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"> {formData.id ? "Simpan Perubahan" : "Tambah Tur"} </button>
+                                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"> {formData.id ? "Simpan Perubahan" : "Tambah Paket"} </button>
                             </div>
                         </form>
                     </div>
@@ -606,4 +537,4 @@ const TourManagement = () => {
     );
 };
 
-export default TourManagement;
+export default FishingManagement;

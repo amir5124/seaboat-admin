@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import swal from "sweetalert";
-import { FaTrash, FaEdit, FaPlus, FaTimes } from "react-icons/fa";
+import { FaTrash, FaEdit, FaPlus, FaTimes, FaChevronDown, FaChevronUp } from "react-icons/fa";
 
 // Ganti dengan URL API backend Anda yang sebenarnya
 const API_URL = "https://api.seaboat.my.id";
 
-// --- Fungsi formatPrice tetap sama ---
 const formatPrice = (price) => {
     const numericPrice = parseFloat(price);
     if (isNaN(numericPrice) || !price) return '0';
@@ -15,23 +14,26 @@ const formatPrice = (price) => {
 };
 
 
-const TourManagement = () => {
-    const [tours, setTours] = useState([]);
+const YachtManagement = () => {
+    const [yachts, setYachts] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [deletingId, setDeletingId] = useState(null);
     const [showModal, setShowModal] = useState(false);
+    // State baru untuk mengontrol tampilan detail harga di modal
+    const [showPriceDetails, setShowPriceDetails] = useState(false);
 
-    // Inisialisasi state formData
     const [formData, setFormData] = useState({
         id: null,
         name: "",
-        service_type: "TOUR", // <-- Tetapkan default ke TOUR
+        service_type: "YACHT",
         short_overview: "",
         overview: "",
         highlights: [""],
         itinerary: [""],
         inclusions: [""],
         exclusions: [""],
-        price_domestic_adult: "",
+        price_domestic_adult: "", // Harga utama yang selalu terlihat
         price_domestic_child: "",
         price_foreigner_adult: "",
         price_foreigner_child: "",
@@ -40,21 +42,19 @@ const TourManagement = () => {
     });
 
     useEffect(() => {
-        fetchTours();
+        fetchYachts();
     }, []);
 
-    const fetchTours = async () => {
+    const fetchYachts = async () => {
         try {
             setLoading(true);
             const response = await axios.get(`${API_URL}/api/tours`);
 
-            // ⭐ PERUBAHAN UTAMA: Filter data hanya untuk 'TOUR'
-            const filteredTours = response.data.filter(item => item.service_type === 'TOUR');
-            setTours(filteredTours);
-
+            const yachtData = response.data.filter(item => item.service_type === 'YACHT');
+            setYachts(yachtData);
         } catch (error) {
-            console.error("Error fetching tours:", error);
-            swal("Error", "Gagal mengambil data tur.", "error");
+            console.error("Error fetching yachts:", error);
+            swal("Error", "Gagal mengambil data yacht.", "error");
         } finally {
             setLoading(false);
         }
@@ -66,7 +66,6 @@ const TourManagement = () => {
     };
 
     const handleImageChange = (e) => {
-        // Gabungkan file baru ke array images
         setFormData({ ...formData, images: [...formData.images, ...e.target.files] });
     };
 
@@ -79,7 +78,7 @@ const TourManagement = () => {
     const handleRemoveExistingImage = async (imageUrl) => {
         const willDelete = await swal({
             title: "Apakah Anda yakin?",
-            text: "Gambar yang dihapus akan dihilangkan dari tur saat disimpan!",
+            text: "Gambar yang dihapus akan dihilangkan dari yacht saat disimpan!",
             icon: "warning",
             buttons: ["Batal", "Ya, Hapus!"],
             dangerMode: true,
@@ -107,31 +106,42 @@ const TourManagement = () => {
         setFormData({ ...formData, [fieldName]: newArray });
     };
 
-    const handleEdit = (tour) => {
+    const handleEdit = (yacht) => {
+        // Cek apakah ada harga selain price_domestic_adult, jika ada, tampilkan detail harga
+        const hasOtherPrices = (
+            yacht.price_domestic_child !== "0" && yacht.price_domestic_child !== "" ||
+            yacht.price_foreigner_adult !== "0" && yacht.price_foreigner_adult !== "" ||
+            yacht.price_foreigner_child !== "0" && yacht.price_foreigner_child !== ""
+        );
+
+        // Set state formData
         setFormData({
-            id: tour.id,
-            name: tour.name,
-            service_type: tour.service_type || "TOUR", // Pastikan tetap TOUR
-            short_overview: tour.short_overview || "",
-            overview: tour.overview,
-            highlights: tour.highlights || [""],
-            itinerary: tour.trip_itinerary || [""],
-            inclusions: tour.inclusions || [""],
-            exclusions: tour.exclusions || [""],
-            price_domestic_adult: tour.price_domestic_adult,
-            price_domestic_child: tour.price_domestic_child,
-            price_foreigner_adult: tour.price_foreigner_adult,
-            price_foreigner_child: tour.price_foreigner_child,
+            id: yacht.id,
+            name: yacht.name,
+            service_type: yacht.service_type || "YACHT",
+            short_overview: yacht.short_overview || "",
+            overview: yacht.overview,
+            highlights: yacht.highlights || [""],
+            itinerary: yacht.trip_itinerary || [""],
+            inclusions: yacht.inclusions || [""],
+            exclusions: yacht.exclusions || [""],
+            price_domestic_adult: yacht.price_domestic_adult,
+            price_domestic_child: yacht.price_domestic_child,
+            price_foreigner_adult: yacht.price_foreigner_adult,
+            price_foreigner_child: yacht.price_foreigner_child,
             images: [],
-            existingImages: tour.images || [],
+            existingImages: yacht.images || [],
         });
+
+        // Tampilkan detail harga jika ada data harga lain
+        setShowPriceDetails(hasOtherPrices);
         setShowModal(true);
     };
 
     const handleDelete = async (id) => {
         const willDelete = await swal({
             title: "Apakah Anda yakin?",
-            text: "Data tur yang dihapus tidak bisa dikembalikan!",
+            text: "Data yacht yang dihapus tidak bisa dikembalikan!",
             icon: "warning",
             buttons: ["Batal", "Ya, Hapus!"],
             dangerMode: true,
@@ -139,46 +149,48 @@ const TourManagement = () => {
 
         if (willDelete) {
             try {
+                setDeletingId(id);
                 await axios.delete(`${API_URL}/api/tours/${id}`);
-                swal("Sukses!", "Tur berhasil dihapus.", "success");
-                fetchTours();
+                swal("Sukses!", "Yacht berhasil dihapus.", "success");
+                fetchYachts();
             } catch (error) {
-                console.error("Error deleting tour:", error);
-                swal("Error", "Gagal menghapus tur.", "error");
+                console.error("Error deleting yacht:", error);
+                swal("Error", "Gagal menghapus yacht.", "error");
+            } finally {
+                setDeletingId(null);
             }
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsSubmitting(true);
+
+        const finalServiceType = formData.service_type || "YACHT";
 
         const data = new FormData();
         data.append("name", formData.name);
-        // data.append("service_type", formData.service_type); // Tidak perlu diubah, selalu TOUR
-        data.append("service_type", "TOUR"); // Dibuat eksplisit TOUR agar tidak bergantung pada input form
+        data.append("service_type", finalServiceType);
         data.append("short_overview", formData.short_overview);
         data.append("overview", formData.overview);
 
-        // Stringify Array Data untuk backend
         data.append("highlights", JSON.stringify(formData.highlights.filter(item => item !== "")));
         data.append("itinerary", JSON.stringify(formData.itinerary.filter(item => item !== "")));
         data.append("inclusions", JSON.stringify(formData.inclusions.filter(item => item !== "")));
         data.append("exclusions", JSON.stringify(formData.exclusions.filter(item => item !== "")));
 
-        data.append("price_domestic_adult", formData.price_domestic_adult);
-        data.append("price_domestic_child", formData.price_domestic_child);
-        data.append("price_foreigner_adult", formData.price_foreigner_adult);
-        data.append("price_foreigner_child", formData.price_foreigner_child);
+        // Pastikan harga dikirim, jika hidden dan tidak diisi, kirim 0
+        data.append("price_domestic_adult", formData.price_domestic_adult || "0");
+        data.append("price_domestic_child", formData.price_domestic_child || "0");
+        data.append("price_foreigner_adult", formData.price_foreigner_adult || "0");
+        data.append("price_foreigner_child", formData.price_foreigner_child || "0");
 
-        // Append new image files
         for (let i = 0; i < formData.images.length; i++) {
             data.append("images", formData.images[i]);
         }
 
-        // Append existing image URLs
         data.append("existingImages", JSON.stringify(formData.existingImages));
 
-        // Tambahkan method override untuk PUT karena formData
         if (formData.id) {
             data.append("_method", "PUT");
         }
@@ -186,27 +198,26 @@ const TourManagement = () => {
 
         try {
             if (formData.id) {
-                // UPDATE: Gunakan POST dengan _method=PUT untuk FormData
                 await axios.post(`${API_URL}/api/tours/${formData.id}`, data, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
-                swal("Sukses!", "Tur berhasil diperbarui.", "success");
+                swal("Sukses!", "Yacht berhasil diperbarui.", "success");
             } else {
-                // CREATE: Tetap gunakan axios.post()
                 await axios.post(`${API_URL}/api/tours`, data, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
-                swal("Sukses!", "Tur berhasil ditambahkan.", "success");
+                swal("Sukses!", "Yacht berhasil ditambahkan.", "success");
             }
             setShowModal(false);
-            fetchTours();
+            fetchYachts();
         } catch (error) {
             console.error("Error submitting form:", error);
-            // Log error response dari server jika ada
             if (error.response && error.response.data) {
                 console.error("Server Response:", error.response.data);
             }
-            swal("Error", "Gagal menyimpan data tur. Cek koneksi API dan log server.", "error");
+            swal("Error", "Gagal menyimpan data yacht. Cek koneksi API dan log server.", "error");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -214,7 +225,7 @@ const TourManagement = () => {
         setFormData({
             id: null,
             name: "",
-            service_type: "TOUR", // <-- Pastikan selalu reset ke TOUR
+            service_type: "YACHT",
             short_overview: "",
             overview: "",
             highlights: [""],
@@ -228,81 +239,77 @@ const TourManagement = () => {
             images: [],
             existingImages: [],
         });
+        setShowPriceDetails(false); // Reset status detail harga
         setShowModal(false);
     };
-
-    // --- Tampilan Komponen ---
 
     return (
 
         <div className="container pt-20 ">
-            <h1 className="text-3xl font-bold text-gray-800 mb-6">Manajemen Paket Tur</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-6">Manajemen Sewa Yacht</h1>
             <button
                 onClick={() => {
                     resetForm();
                     setShowModal(true);
                 }}
                 className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-300 mb-6 flex items-center"
+                disabled={isSubmitting}
             >
                 <FaPlus className="mr-2" />
-                Tambah Tur Baru
+                Tambah Yacht Baru
             </button>
 
             {loading ? (
                 <div className="flex justify-center items-center h-64">
-                    <div className="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full text-blue-500"></div>
+                    <div className="animate-spin inline-block w-8 h-8 border-4 rounded-full border-t-transparent border-blue-500"></div>
 
                 </div>
             ) : (
-                // Wrapper overflow-x-auto untuk tabel responsif di mobile
                 <div className="bg-white shadow-md rounded-lg overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">Nama Tur</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">Nama Yacht</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Tipe Layanan</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">Deskripsi Singkat</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">Harga Dewasa (Domestik)</th>
+                                {/* Hanya tampilkan satu kolom harga utama */}
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">Harga Sewa Utama </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gambar</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Aksi</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {/* Hanya menampilkan data TOUR karena sudah difilter di fetchTours() */}
-                            {tours.map((tour) => (
-                                <tr key={tour.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{tour.name}</td>
+                            {yachts.map((yacht) => (
+                                <tr key={yacht.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{yacht.name}</td>
 
-                                    {/* Tampilan Tipe Layanan (akan selalu TOUR di sini) */}
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800`}>
-                                            {/* tour.service_type akan selalu 'TOUR' */}
-                                            {tour.service_type}
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-200 text-dark-800`}>
+                                            {yacht.service_type}
                                         </span>
                                     </td>
 
-                                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs overflow-hidden truncate" title={tour.short_overview}>
-                                        {tour.short_overview}
+                                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs overflow-hidden truncate" title={yacht.short_overview}>
+                                        {yacht.short_overview}
                                     </td>
 
-                                    {/* Tampilan Harga dengan format Rupiah */}
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        Rp {formatPrice(tour.price_domestic_adult)}
+                                        Rp {formatPrice(yacht.price_domestic_adult)}
                                     </td>
 
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         <div className="flex -space-x-2 overflow-hidden">
-                                            {tour.images && tour.images.slice(0, 3).map((image, index) => (
+                                            {yacht.images && yacht.images.slice(0, 3).map((image, index) => (
                                                 <img
                                                     key={index}
                                                     className="inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover"
                                                     src={`${API_URL}${image}`}
-                                                    alt={`Tour image ${index + 1}`}
+                                                    alt={`Yacht image ${index + 1}`}
                                                 />
                                             ))}
-                                            {tour.images && tour.images.length > 3 && (
+                                            {yacht.images && yacht.images.length > 3 && (
                                                 <span className="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 text-gray-600 text-xs font-bold ring-2 ring-white">
-                                                    +{tour.images.length - 3}
+                                                    +{yacht.images.length - 3}
                                                 </span>
                                             )}
                                         </div>
@@ -310,18 +317,23 @@ const TourManagement = () => {
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div className="flex items-center space-x-2">
                                             <button
-                                                onClick={() => handleEdit(tour)}
+                                                onClick={() => handleEdit(yacht)}
                                                 className="text-yellow-600 hover:text-yellow-900 transition-colors duration-200"
                                                 title="Edit"
                                             >
                                                 <FaEdit className="w-5 h-5" />
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(tour.id)}
-                                                className="text-red-600 hover:text-red-900 transition-colors duration-200"
+                                                onClick={() => handleDelete(yacht.id)}
+                                                className={`text-red-600 hover:text-red-900 transition-colors duration-200 ${deletingId === yacht.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                 title="Hapus"
+                                                disabled={deletingId === yacht.id}
                                             >
-                                                <FaTrash className="w-5 h-5" />
+                                                {deletingId === yacht.id ? (
+                                                    <div className="animate-spin w-5 h-5 border-2 rounded-full border-t-transparent border-red-600"></div>
+                                                ) : (
+                                                    <FaTrash className="w-5 h-5" />
+                                                )}
                                             </button>
                                         </div>
                                     </td>
@@ -336,16 +348,15 @@ const TourManagement = () => {
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center z-50">
                     <div className="bg-white rounded-lg shadow-xl p-8 max-h-[90vh] overflow-y-auto max-w-4xl w-full mx-4">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-semibold text-gray-800">{formData.id ? "Edit Paket Tur" : "Tambah Paket Tur"}</h2>
+                            <h2 className="text-2xl font-semibold text-gray-800">{formData.id ? "Edit Sewa Yacht" : "Tambah Sewa Yacht"}</h2>
                             <button onClick={resetForm} className="text-gray-500 hover:text-gray-800">
                                 <FaTimes className="w-6 h-6" />
                             </button>
                         </div>
                         <form onSubmit={handleSubmit}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                {/* Detail Utama */}
-                                <div className="col-span-1">
-                                    <label className="block text-sm font-medium text-gray-700">Nama Tur</label>
+                                <div className="col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700">Nama Yacht</label>
                                     <input
                                         type="text"
                                         name="name"
@@ -355,24 +366,7 @@ const TourManagement = () => {
                                         required
                                     />
                                 </div>
-                                <div className="col-span-1">
-                                    <label className="block text-sm font-medium text-gray-700">Tipe Layanan</label>
-                                    <select
-                                        name="service_type"
-                                        value={formData.service_type}
-                                        onChange={handleInputChange}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2.5 bg-gray-100"
-                                        required
-                                        disabled // ⭐ PERUBAHAN: Dinonaktifkan (atau disembunyikan)
-                                    >
-                                        {/* ⭐ PERUBAHAN: HANYA tampilkan opsi TOUR */}
-                                        <option value="TOUR">TOUR</option>
-                                    </select>
-                                    {/* Opsional: Tampilkan teks jika select dinonaktifkan */}
-                                    <p className="text-xs text-gray-500 mt-1">Tipe layanan ini adalah TOUR.</p>
-                                </div>
 
-                                {/* Input short_overview */}
                                 <div className="col-span-2">
                                     <label className="block text-sm font-medium text-gray-700">Deskripsi Singkat (Max 255 Karakter)</label>
                                     <textarea
@@ -398,7 +392,7 @@ const TourManagement = () => {
                                     ></textarea>
                                 </div>
 
-                                {/* Bagian Array Inputs (Highlights, Itinerary, Inclusions, Exclusions) - Dibiarkan sama */}
+                                {/* Area Input Array (Highlights, Itinerary, Inclusions, Exclusions) */}
                                 <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
 
                                     {/* Highlights */}
@@ -530,32 +524,62 @@ const TourManagement = () => {
                                     </div>
                                 </div>
 
-                                {/* Bagian Harga (2 kolom) */}
-                                <div className="col-span-2 grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Harga Dewasa Domestik</label>
-                                        <input type="number" name="price_domestic_adult" value={formData.price_domestic_adult} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Harga Anak Domestik</label>
-                                        <input type="number" name="price_domestic_child" value={formData.price_domestic_child} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Harga Dewasa Asing</label>
-                                        <input type="number" name="price_foreigner_adult" value={formData.price_foreigner_adult} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Harga Anak Asing</label>
-                                        <input type="number" name="price_foreigner_child" value={formData.price_foreigner_child} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required />
-                                    </div>
+                                {/* Bagian Harga Sewa Utama (Selalu Muncul) */}
+                                <div className="col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700">Harga Sewa Utama </label>
+                                    <input
+                                        type="number"
+                                        name="price_domestic_adult"
+                                        value={formData.price_domestic_adult}
+                                        onChange={handleInputChange}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        required
+                                        placeholder="Contoh: 5000000"
+                                    />
                                 </div>
+
+                                {/* Tombol Toggle Detail Harga */}
+                                <div className="col-span-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPriceDetails(!showPriceDetails)}
+                                        className="text-blue-600 font-medium flex items-center hover:text-blue-800 transition-colors"
+                                    >
+                                        {showPriceDetails ? (
+                                            <>
+                                                <FaChevronUp className="mr-2 w-3 h-3" /> Sembunyikan Detail Harga Lain
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FaChevronDown className="mr-2 w-3 h-3" /> Tambahkan Detail Harga Lain (Anak/Asing)
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+
+                                {/* Detail Harga Lain (Muncul/Sembunyi) */}
+                                {showPriceDetails && (
+                                    <div className="col-span-2 grid grid-cols-2 gap-4 border-t pt-4 mt-2">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Harga Sewa 2</label>
+                                            <input type="number" name="price_domestic_child" value={formData.price_domestic_child} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="0 (Opsional)" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Harga Sewa 3</label>
+                                            <input type="number" name="price_foreigner_adult" value={formData.price_foreigner_adult} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="0 (Opsional)" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Harga Sewa 4</label>
+                                            <input type="number" name="price_foreigner_child" value={formData.price_foreigner_child} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="0 (Opsional)" />
+                                        </div>
+                                    </div>
+                                )}
 
 
                                 {/* Bagian Gambar */}
                                 <div className="col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700">Gambar Tur</label>
+                                    <label className="block text-sm font-medium text-gray-700">Gambar Yacht</label>
 
-                                    {/* Preview gambar yang sudah ada (existingImages) */}
                                     {formData.existingImages.length > 0 && (
                                         <div className="flex flex-wrap gap-2 mt-2 border p-2 rounded-md bg-gray-50">
                                             <p className="w-full text-xs text-gray-500">Gambar Tersimpan (Klik X untuk hapus sebelum disimpan)</p>
@@ -566,7 +590,13 @@ const TourManagement = () => {
                                                         alt={`Gambar existing ${index + 1}`}
                                                         className="w-24 h-24 object-cover rounded-md border border-gray-300"
                                                     />
-                                                    <button type="button" onClick={() => handleRemoveExistingImage(image)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 transition-transform hover:scale-110"> <FaTimes className="w-4 h-4" /> </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveExistingImage(image)}
+                                                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 transition-transform hover:scale-110"
+                                                    >
+                                                        <FaTimes className="w-4 h-4" />
+                                                    </button>
                                                 </div>
                                             ))}
                                         </div>
@@ -587,7 +617,13 @@ const TourManagement = () => {
                                                     alt={`Preview ${index + 1}`}
                                                     className="w-24 h-24 object-cover rounded-md border border-dashed border-blue-400"
                                                 />
-                                                <button type="button" onClick={() => handleRemoveNewImage(index)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 transition-transform hover:scale-110"> <FaTimes className="w-4 h-4" /> </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveNewImage(index)}
+                                                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 transition-transform hover:scale-110"
+                                                >
+                                                    <FaTimes className="w-4 h-4" />
+                                                </button>
                                             </div>
                                         ))}
                                     </div>
@@ -595,8 +631,24 @@ const TourManagement = () => {
                             </div>
 
                             <div className="mt-6 flex justify-end space-x-3">
-                                <button type="button" onClick={resetForm} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"> Batal </button>
-                                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"> {formData.id ? "Simpan Perubahan" : "Tambah Tur"} </button>
+                                <button
+                                    type="button"
+                                    onClick={resetForm}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                                    disabled={isSubmitting}
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    type="submit"
+                                    className={`px-4 py-2 text-sm font-medium rounded-md flex items-center justify-center ${isSubmitting ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white transition-colors`}
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting && (
+                                        <div className="animate-spin w-4 h-4 border-2 rounded-full border-t-transparent border-white mr-2"></div>
+                                    )}
+                                    {formData.id ? "Simpan Perubahan" : "Tambah Yacht"}
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -606,4 +658,4 @@ const TourManagement = () => {
     );
 };
 
-export default TourManagement;
+export default YachtManagement;
