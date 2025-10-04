@@ -7,11 +7,7 @@ import { Modal } from 'react-bootstrap';
 // URL API. Disarankan tanpa /api di belakang
 const API_URL = "https://api.seaboat.my.id";
 
-// --------------------------------------------------------
-// --- STRUKTUR DATA RUTE BERDASARKAN REMARK (HARDCODED) ---
-// --------------------------------------------------------
 
-// Data untuk Harbour Transfer (Remark: HARBOUR)
 const pickupAreas = {
     'Bali': [
         'Sanur, East & South Denpasar',
