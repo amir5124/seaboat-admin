@@ -157,9 +157,7 @@ const getNormalizedRemarkName = (urlRemarkType) => {
     }
 };
 
-// --------------------------------------------------------
-// --- KOMPONEN UTAMA ---
-// --------------------------------------------------------
+
 
 const Trips = () => {
     const { remarkType } = useParams();
