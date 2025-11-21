@@ -14,23 +14,34 @@ const formatPrice = (price) => {
     return new Intl.NumberFormat('id-ID').format(numericPrice).replace(/,00$/, '');
 };
 
-
 const TourManagement = () => {
     const [tours, setTours] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
 
-    // Inisialisasi state formData
+    // ⭐ STATE UNTUK MULTILANGUAGE (ID & EN)
+    const [activeLangTab, setActiveLangTab] = useState('id'); // State untuk mengontrol tab bahasa
+
     const [formData, setFormData] = useState({
         id: null,
+        // ID Fields (Non-sufiks)
         name: "",
-        service_type: "TOUR", // <-- Tetapkan default ke TOUR
         short_overview: "",
         overview: "",
-        highlights: [""],
-        itinerary: [""],
-        inclusions: [""],
-        exclusions: [""],
+        highlights_id: [""],
+        itinerary_id: [""],
+        inclusions_id: [""],
+        exclusions_id: [""],
+        // EN Fields (Sufiks _en)
+        name_en: "",
+        short_overview_en: "",
+        overview_en: "",
+        highlights_en: [""],
+        itinerary_en: [""],
+        inclusions_en: [""],
+        exclusions_en: [""],
+        // Non-Content Fields
+        service_type: "TOUR",
         price_domestic_adult: "",
         price_domestic_child: "",
         price_foreigner_adult: "",
@@ -47,11 +58,9 @@ const TourManagement = () => {
         try {
             setLoading(true);
             const response = await axios.get(`${API_URL}/api/tours`);
-
-            // ⭐ PERUBAHAN UTAMA: Filter data hanya untuk 'TOUR'
+            // Filter data hanya untuk 'TOUR'
             const filteredTours = response.data.filter(item => item.service_type === 'TOUR');
             setTours(filteredTours);
-
         } catch (error) {
             console.error("Error fetching tours:", error);
             swal("Error", "Gagal mengambil data tur.", "error");
@@ -66,7 +75,6 @@ const TourManagement = () => {
     };
 
     const handleImageChange = (e) => {
-        // Gabungkan file baru ke array images
         setFormData({ ...formData, images: [...formData.images, ...e.target.files] });
     };
 
@@ -92,6 +100,7 @@ const TourManagement = () => {
         }
     };
 
+    // Fungsi Array (digunakan untuk ID dan EN, asalkan fieldName benar)
     const handleArrayChange = (e, index, fieldName) => {
         const newArray = [...formData[fieldName]];
         newArray[index] = e.target.value;
@@ -110,14 +119,24 @@ const TourManagement = () => {
     const handleEdit = (tour) => {
         setFormData({
             id: tour.id,
-            name: tour.name,
-            service_type: tour.service_type || "TOUR", // Pastikan tetap TOUR
+            // ID Fields
+            name: tour.name || "",
             short_overview: tour.short_overview || "",
-            overview: tour.overview,
-            highlights: tour.highlights || [""],
-            itinerary: tour.trip_itinerary || [""],
-            inclusions: tour.inclusions || [""],
-            exclusions: tour.exclusions || [""],
+            overview: tour.overview || "",
+            highlights_id: tour.highlights || [""],
+            itinerary_id: tour.trip_itinerary || [""],
+            inclusions_id: tour.inclusions || [""],
+            exclusions_id: tour.exclusions || [""],
+            // EN Fields (Ambil dari kolom sufiks _en)
+            name_en: tour.name_en || "",
+            short_overview_en: tour.short_overview_en || "",
+            overview_en: tour.overview_en || "",
+            highlights_en: tour.highlights_en || [""],
+            itinerary_en: tour.trip_itinerary_en || [""],
+            inclusions_en: tour.inclusions_en || [""],
+            exclusions_en: tour.exclusions_en || [""],
+            // Non-Content Fields
+            service_type: tour.service_type || "TOUR",
             price_domestic_adult: tour.price_domestic_adult,
             price_domestic_child: tour.price_domestic_child,
             price_foreigner_adult: tour.price_foreigner_adult,
@@ -125,6 +144,7 @@ const TourManagement = () => {
             images: [],
             existingImages: tour.images || [],
         });
+        setActiveLangTab('id'); // Reset tab ke ID saat edit
         setShowModal(true);
     };
 
@@ -153,32 +173,39 @@ const TourManagement = () => {
         e.preventDefault();
 
         const data = new FormData();
+
+        // ⭐ SUBMISSION: ID FIELDS
         data.append("name", formData.name);
-        // data.append("service_type", formData.service_type); // Tidak perlu diubah, selalu TOUR
-        data.append("service_type", "TOUR"); // Dibuat eksplisit TOUR agar tidak bergantung pada input form
         data.append("short_overview", formData.short_overview);
         data.append("overview", formData.overview);
+        data.append("highlights", JSON.stringify(formData.highlights_id.filter(item => item !== "")));
+        data.append("itinerary", JSON.stringify(formData.itinerary_id.filter(item => item !== "")));
+        data.append("inclusions", JSON.stringify(formData.inclusions_id.filter(item => item !== "")));
+        data.append("exclusions", JSON.stringify(formData.exclusions_id.filter(item => item !== "")));
 
-        // Stringify Array Data untuk backend
-        data.append("highlights", JSON.stringify(formData.highlights.filter(item => item !== "")));
-        data.append("itinerary", JSON.stringify(formData.itinerary.filter(item => item !== "")));
-        data.append("inclusions", JSON.stringify(formData.inclusions.filter(item => item !== "")));
-        data.append("exclusions", JSON.stringify(formData.exclusions.filter(item => item !== "")));
+        // ⭐ SUBMISSION: EN FIELDS
+        data.append("name_en", formData.name_en);
+        data.append("short_overview_en", formData.short_overview_en);
+        data.append("overview_en", formData.overview_en);
+        data.append("highlights_en", JSON.stringify(formData.highlights_en.filter(item => item !== "")));
+        data.append("itinerary_en", JSON.stringify(formData.itinerary_en.filter(item => item !== "")));
+        data.append("inclusions_en", JSON.stringify(formData.inclusions_en.filter(item => item !== "")));
+        data.append("exclusions_en", JSON.stringify(formData.exclusions_en.filter(item => item !== "")));
 
+        // Non-Content Fields
+        data.append("service_type", "TOUR");
         data.append("price_domestic_adult", formData.price_domestic_adult);
         data.append("price_domestic_child", formData.price_domestic_child);
         data.append("price_foreigner_adult", formData.price_foreigner_adult);
         data.append("price_foreigner_child", formData.price_foreigner_child);
 
-        // Append new image files
+        // Images
         for (let i = 0; i < formData.images.length; i++) {
             data.append("images", formData.images[i]);
         }
-
-        // Append existing image URLs
         data.append("existingImages", JSON.stringify(formData.existingImages));
 
-        // Tambahkan method override untuk PUT karena formData
+        // Method override untuk PUT
         if (formData.id) {
             data.append("_method", "PUT");
         }
@@ -186,13 +213,13 @@ const TourManagement = () => {
 
         try {
             if (formData.id) {
-                // UPDATE: Gunakan POST dengan _method=PUT untuk FormData
+                // UPDATE
                 await axios.post(`${API_URL}/api/tours/${formData.id}`, data, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
                 swal("Sukses!", "Tur berhasil diperbarui.", "success");
             } else {
-                // CREATE: Tetap gunakan axios.post()
+                // CREATE
                 await axios.post(`${API_URL}/api/tours`, data, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
@@ -202,7 +229,6 @@ const TourManagement = () => {
             fetchTours();
         } catch (error) {
             console.error("Error submitting form:", error);
-            // Log error response dari server jika ada
             if (error.response && error.response.data) {
                 console.error("Server Response:", error.response.data);
             }
@@ -213,14 +239,24 @@ const TourManagement = () => {
     const resetForm = () => {
         setFormData({
             id: null,
+            // ID Fields
             name: "",
-            service_type: "TOUR", // <-- Pastikan selalu reset ke TOUR
             short_overview: "",
             overview: "",
-            highlights: [""],
-            itinerary: [""],
-            inclusions: [""],
-            exclusions: [""],
+            highlights_id: [""],
+            itinerary_id: [""],
+            inclusions_id: [""],
+            exclusions_id: [""],
+            // EN Fields
+            name_en: "",
+            short_overview_en: "",
+            overview_en: "",
+            highlights_en: [""],
+            itinerary_en: [""],
+            inclusions_en: [""],
+            exclusions_en: [""],
+            // Non-Content Fields
+            service_type: "TOUR",
             price_domestic_adult: "",
             price_domestic_child: "",
             price_foreigner_adult: "",
@@ -228,6 +264,7 @@ const TourManagement = () => {
             images: [],
             existingImages: [],
         });
+        setActiveLangTab('id'); // Reset tab ke ID
         setShowModal(false);
     };
 
@@ -268,15 +305,13 @@ const TourManagement = () => {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {/* Hanya menampilkan data TOUR karena sudah difilter di fetchTours() */}
                             {tours.map((tour) => (
                                 <tr key={tour.id}>
+                                    {/* Di tabel utama, kita asumsikan ditampilkan dalam Bahasa ID */}
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{tour.name}</td>
 
-                                    {/* Tampilan Tipe Layanan (akan selalu TOUR di sini) */}
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800`}>
-                                            {/* tour.service_type akan selalu 'TOUR' */}
                                             {tour.service_type}
                                         </span>
                                     </td>
@@ -285,21 +320,21 @@ const TourManagement = () => {
                                         {tour.short_overview}
                                     </td>
 
-                                    {/* Tampilan Harga dengan format Rupiah */}
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         Rp {formatPrice(tour.price_domestic_adult)}
                                     </td>
 
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         <div className="flex -space-x-2 overflow-hidden">
-                                            {tour.images && tour.images.slice(0, 3).map((image, index) => (
-                                                <img
-                                                    key={index}
-                                                    className="inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover"
-                                                    src={`${API_URL}${image}`}
-                                                    alt={`Tour image ${index + 1}`}
-                                                />
-                                            ))}
+                                            {tour.images &&
+                                                tour.images.slice(0, 3).map((image, index) => (
+                                                    <img
+                                                        key={index}
+                                                        className="inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover"
+                                                        src={`${API_URL}${image}`}
+                                                        alt={`Tour image ${index + 1}`}
+                                                    />
+                                                ))}
                                             {tour.images && tour.images.length > 3 && (
                                                 <span className="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 text-gray-600 text-xs font-bold ring-2 ring-white">
                                                     +{tour.images.length - 3}
@@ -336,25 +371,45 @@ const TourManagement = () => {
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center z-50">
                     <div className="bg-white rounded-lg shadow-xl p-8 max-h-[90vh] overflow-y-auto max-w-4xl w-full mx-4">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-semibold text-gray-800">{formData.id ? "Edit Paket Tur" : "Tambah Paket Tur"}</h2>
+                            <h2 className="text-2xl font-semibold text-gray-800">{formData.id ?
+                                "Edit Paket Tur" : "Tambah Paket Tur"}</h2>
                             <button onClick={resetForm} className="text-gray-500 hover:text-gray-800">
                                 <FaTimes className="w-6 h-6" />
                             </button>
                         </div>
                         <form onSubmit={handleSubmit}>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                {/* Detail Utama */}
-                                <div className="col-span-1">
-                                    <label className="block text-sm font-medium text-gray-700">Nama Tur</label>
-                                    <input
-                                        type="text"
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={handleInputChange}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                        required
-                                    />
+
+                            {/* --- Kontrol Tab Bahasa --- */}
+                            <div className="col-span-2 mb-4">
+                                <div className="flex border-b border-gray-200">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveLangTab('id')}
+                                        className={`py-2 px-4 text-sm font-medium transition-colors ${activeLangTab === 'id'
+                                                ? 'border-b-2 border-blue-600 text-blue-600'
+                                                : 'text-gray-500 hover:text-gray-700'
+                                            }`}
+                                    >
+                                        🇮🇩 Bahasa Indonesia
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveLangTab('en')}
+                                        className={`py-2 px-4 text-sm font-medium transition-colors ${activeLangTab === 'en'
+                                                ? 'border-b-2 border-blue-600 text-blue-600'
+                                                : 'text-gray-500 hover:text-gray-700'
+                                            }`}
+                                    >
+                                        🇬🇧 English
+                                    </button>
                                 </div>
+                            </div>
+                            {/* --- Akhir Kontrol Tab --- */}
+
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+
+                                {/* Tipe Layanan (Selalu terlihat, di luar tab bahasa) */}
                                 <div className="col-span-1">
                                     <label className="block text-sm font-medium text-gray-700">Tipe Layanan</label>
                                     <select
@@ -363,174 +418,294 @@ const TourManagement = () => {
                                         onChange={handleInputChange}
                                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2.5 bg-gray-100"
                                         required
-                                        disabled // ⭐ PERUBAHAN: Dinonaktifkan (atau disembunyikan)
+                                        disabled
                                     >
-                                        {/* ⭐ PERUBAHAN: HANYA tampilkan opsi TOUR */}
                                         <option value="TOUR">TOUR</option>
                                     </select>
-                                    {/* Opsional: Tampilkan teks jika select dinonaktifkan */}
                                     <p className="text-xs text-gray-500 mt-1">Tipe layanan ini adalah TOUR.</p>
                                 </div>
 
-                                {/* Input short_overview */}
-                                <div className="col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700">Deskripsi Singkat (Max 255 Karakter)</label>
-                                    <textarea
-                                        name="short_overview"
-                                        value={formData.short_overview}
-                                        onChange={handleInputChange}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                        rows="2"
-                                        maxLength="255"
-                                        required
-                                    ></textarea>
-                                </div>
+                                {/* Placeholder untuk grid agar input berikutnya di kolom 2 */}
+                                <div className="col-span-1"></div>
 
-                                <div className="col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700">Deskripsi Lengkap (Overview)</label>
-                                    <textarea
-                                        name="overview"
-                                        value={formData.overview}
-                                        onChange={handleInputChange}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                        rows="3"
-                                        required
-                                    ></textarea>
-                                </div>
+                                {/* --- INPUT BAHASA INDONESIA --- */}
+                                {activeLangTab === 'id' && (
+                                    <>
+                                        <div className="col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700">Nama Tur (ID)</label>
+                                            <input
+                                                type="text"
+                                                name="name"
+                                                value={formData.name}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                required
+                                            />
+                                        </div>
 
-                                {/* Bagian Array Inputs (Highlights, Itinerary, Inclusions, Exclusions) - Dibiarkan sama */}
-                                <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700">Deskripsi Singkat (ID - Max 255 Karakter)</label>
+                                            <textarea
+                                                name="short_overview"
+                                                value={formData.short_overview}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                rows="2"
+                                                maxLength="255"
+                                                required
+                                            ></textarea>
+                                        </div>
 
-                                    {/* Highlights */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Highlights</label>
-                                        {formData.highlights.map((highlight, index) => (
-                                            <div key={index} className="flex items-center space-x-2 mb-2">
-                                                <input
-                                                    type="text"
-                                                    value={highlight}
-                                                    onChange={(e) => handleArrayChange(e, index, "highlights")}
-                                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                                    placeholder={`Highlight ${index + 1}`}
-                                                />
-                                                {formData.highlights.length > 1 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRemoveArrayItem(index, "highlights")}
-                                                        className="text-red-500 hover:text-red-700"
-                                                    >
-                                                        <FaTimes />
-                                                    </button>
-                                                )}
+                                        <div className="col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700">Deskripsi Lengkap (ID - Overview)</label>
+                                            <textarea
+                                                name="overview"
+                                                value={formData.overview}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                rows="3"
+                                                required
+                                            ></textarea>
+                                        </div>
+
+                                        {/* Bagian Array Inputs (ID) */}
+                                        <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Highlights (ID)</label>
+                                                {formData.highlights_id.map((highlight, index) => (
+                                                    <div key={index} className="flex items-center space-x-2 mb-2">
+                                                        <input
+                                                            type="text"
+                                                            value={highlight}
+                                                            onChange={(e) => handleArrayChange(e, index, "highlights_id")}
+                                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                            placeholder={`Highlight ID ${index + 1}`}
+                                                        />
+                                                        {formData.highlights_id.length > 1 && (
+                                                            <button type="button" onClick={() => handleRemoveArrayItem(index, "highlights_id")} className="text-red-500 hover:text-red-700">
+                                                                <FaTimes />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                <button type="button" onClick={() => handleAddArrayItem("highlights_id")} className="mt-2 text-blue-500 hover:text-blue-700 font-medium">
+                                                    <FaPlus className="inline-block mr-1" /> Tambah Highlight ID
+                                                </button>
                                             </div>
-                                        ))}
-                                        <button
-                                            type="button"
-                                            onClick={() => handleAddArrayItem("highlights")}
-                                            className="mt-2 text-blue-500 hover:text-blue-700 font-medium"
-                                        >
-                                            <FaPlus className="inline-block mr-1" /> Tambah Highlight
-                                        </button>
-                                    </div>
 
-                                    {/* Itinerary */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Itinerary / Detail Waktu/Durasi</label>
-                                        {formData.itinerary.map((item, index) => (
-                                            <div key={index} className="flex items-center space-x-2 mb-2">
-                                                <input
-                                                    type="text"
-                                                    value={item}
-                                                    onChange={(e) => handleArrayChange(e, index, "itinerary")}
-                                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                                    placeholder={`Detail ${index + 1}`}
-                                                />
-                                                {formData.itinerary.length > 1 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRemoveArrayItem(index, "itinerary")}
-                                                        className="text-red-500 hover:text-red-700"
-                                                    >
-                                                        <FaTimes />
-                                                    </button>
-                                                )}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Itinerary / Detail Waktu/Durasi (ID)</label>
+                                                {formData.itinerary_id.map((item, index) => (
+                                                    <div key={index} className="flex items-center space-x-2 mb-2">
+                                                        <input
+                                                            type="text"
+                                                            value={item}
+                                                            onChange={(e) => handleArrayChange(e, index, "itinerary_id")}
+                                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                            placeholder={`Detail ID ${index + 1}`}
+                                                        />
+                                                        {formData.itinerary_id.length > 1 && (
+                                                            <button type="button" onClick={() => handleRemoveArrayItem(index, "itinerary_id")} className="text-red-500 hover:text-red-700">
+                                                                <FaTimes />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                <button type="button" onClick={() => handleAddArrayItem("itinerary_id")} className="mt-2 text-blue-500 hover:text-blue-700 font-medium">
+                                                    <FaPlus className="inline-block mr-1" /> Tambah Detail Waktu ID
+                                                </button>
                                             </div>
-                                        ))}
-                                        <button
-                                            type="button"
-                                            onClick={() => handleAddArrayItem("itinerary")}
-                                            className="mt-2 text-blue-500 hover:text-blue-700 font-medium"
-                                        >
-                                            <FaPlus className="inline-block mr-1" /> Tambah Detail Waktu
-                                        </button>
-                                    </div>
 
-                                    {/* Inclusions */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Inclusions</label>
-                                        {formData.inclusions.map((item, index) => (
-                                            <div key={index} className="flex items-center space-x-2 mb-2">
-                                                <input
-                                                    type="text"
-                                                    value={item}
-                                                    onChange={(e) => handleArrayChange(e, index, "inclusions")}
-                                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                                    placeholder={`Inclusions ${index + 1}`}
-                                                />
-                                                {formData.inclusions.length > 1 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRemoveArrayItem(index, "inclusions")}
-                                                        className="text-red-500 hover:text-red-700"
-                                                    >
-                                                        <FaTimes />
-                                                    </button>
-                                                )}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Inclusions (ID)</label>
+                                                {formData.inclusions_id.map((item, index) => (
+                                                    <div key={index} className="flex items-center space-x-2 mb-2">
+                                                        <input
+                                                            type="text"
+                                                            value={item}
+                                                            onChange={(e) => handleArrayChange(e, index, "inclusions_id")}
+                                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                            placeholder={`Inclusions ID ${index + 1}`}
+                                                        />
+                                                        {formData.inclusions_id.length > 1 && (
+                                                            <button type="button" onClick={() => handleRemoveArrayItem(index, "inclusions_id")} className="text-red-500 hover:text-red-700">
+                                                                <FaTimes />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                <button type="button" onClick={() => handleAddArrayItem("inclusions_id")} className="mt-2 text-blue-500 hover:text-blue-700 font-medium">
+                                                    <FaPlus className="inline-block mr-1" /> Tambah Inclusions ID
+                                                </button>
                                             </div>
-                                        ))}
-                                        <button
-                                            type="button"
-                                            onClick={() => handleAddArrayItem("inclusions")}
-                                            className="mt-2 text-blue-500 hover:text-blue-700 font-medium"
-                                        >
-                                            <FaPlus className="inline-block mr-1" /> Tambah Inclusions
-                                        </button>
-                                    </div>
 
-                                    {/* Exclusions */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Exclusions</label>
-                                        {formData.exclusions.map((item, index) => (
-                                            <div key={index} className="flex items-center space-x-2 mb-2">
-                                                <input
-                                                    type="text"
-                                                    value={item}
-                                                    onChange={(e) => handleArrayChange(e, index, "exclusions")}
-                                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                                    placeholder={`Exclusions ${index + 1}`}
-                                                />
-                                                {formData.exclusions.length > 1 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRemoveArrayItem(index, "exclusions")}
-                                                        className="text-red-500 hover:text-red-700"
-                                                    >
-                                                        <FaTimes />
-                                                    </button>
-                                                )}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Exclusions (ID)</label>
+                                                {formData.exclusions_id.map((item, index) => (
+                                                    <div key={index} className="flex items-center space-x-2 mb-2">
+                                                        <input
+                                                            type="text"
+                                                            value={item}
+                                                            onChange={(e) => handleArrayChange(e, index, "exclusions_id")}
+                                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                            placeholder={`Exclusions ID ${index + 1}`}
+                                                        />
+                                                        {formData.exclusions_id.length > 1 && (
+                                                            <button type="button" onClick={() => handleRemoveArrayItem(index, "exclusions_id")} className="text-red-500 hover:text-red-700">
+                                                                <FaTimes />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                <button type="button" onClick={() => handleAddArrayItem("exclusions_id")} className="mt-2 text-blue-500 hover:text-blue-700 font-medium">
+                                                    <FaPlus className="inline-block mr-1" /> Tambah Exclusions ID
+                                                </button>
                                             </div>
-                                        ))}
-                                        <button
-                                            type="button"
-                                            onClick={() => handleAddArrayItem("exclusions")}
-                                            className="mt-2 text-blue-500 hover:text-blue-700 font-medium"
-                                        >
-                                            <FaPlus className="inline-block mr-1" /> Tambah Exclusions
-                                        </button>
-                                    </div>
-                                </div>
+                                        </div>
+                                    </>
+                                )}
 
-                                {/* Bagian Harga (2 kolom) */}
+                                {/* --- INPUT BAHASA INGGRIS --- */}
+                                {activeLangTab === 'en' && (
+                                    <>
+                                        <div className="col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700">Nama Tur (EN)</label>
+                                            <input
+                                                type="text"
+                                                name="name_en"
+                                                value={formData.name_en}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700">Short Overview (EN - Max 255 Characters)</label>
+                                            <textarea
+                                                name="short_overview_en"
+                                                value={formData.short_overview_en}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                rows="2"
+                                                maxLength="255"
+                                                required
+                                            ></textarea>
+                                        </div>
+
+                                        <div className="col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700">Full Description (EN - Overview)</label>
+                                            <textarea
+                                                name="overview_en"
+                                                value={formData.overview_en}
+                                                onChange={handleInputChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                rows="3"
+                                                required
+                                            ></textarea>
+                                        </div>
+
+                                        {/* Bagian Array Inputs (EN) */}
+                                        <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Highlights (EN)</label>
+                                                {formData.highlights_en.map((highlight, index) => (
+                                                    <div key={index} className="flex items-center space-x-2 mb-2">
+                                                        <input
+                                                            type="text"
+                                                            value={highlight}
+                                                            onChange={(e) => handleArrayChange(e, index, "highlights_en")}
+                                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                            placeholder={`Highlight EN ${index + 1}`}
+                                                        />
+                                                        {formData.highlights_en.length > 1 && (
+                                                            <button type="button" onClick={() => handleRemoveArrayItem(index, "highlights_en")} className="text-red-500 hover:text-red-700">
+                                                                <FaTimes />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                <button type="button" onClick={() => handleAddArrayItem("highlights_en")} className="mt-2 text-blue-500 hover:text-blue-700 font-medium">
+                                                    <FaPlus className="inline-block mr-1" /> Add Highlight EN
+                                                </button>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Itinerary / Time Detail (EN)</label>
+                                                {formData.itinerary_en.map((item, index) => (
+                                                    <div key={index} className="flex items-center space-x-2 mb-2">
+                                                        <input
+                                                            type="text"
+                                                            value={item}
+                                                            onChange={(e) => handleArrayChange(e, index, "itinerary_en")}
+                                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                            placeholder={`Detail EN ${index + 1}`}
+                                                        />
+                                                        {formData.itinerary_en.length > 1 && (
+                                                            <button type="button" onClick={() => handleRemoveArrayItem(index, "itinerary_en")} className="text-red-500 hover:text-red-700">
+                                                                <FaTimes />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                <button type="button" onClick={() => handleAddArrayItem("itinerary_en")} className="mt-2 text-blue-500 hover:text-blue-700 font-medium">
+                                                    <FaPlus className="inline-block mr-1" /> Add Time Detail EN
+                                                </button>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Inclusions (EN)</label>
+                                                {formData.inclusions_en.map((item, index) => (
+                                                    <div key={index} className="flex items-center space-x-2 mb-2">
+                                                        <input
+                                                            type="text"
+                                                            value={item}
+                                                            onChange={(e) => handleArrayChange(e, index, "inclusions_en")}
+                                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                            placeholder={`Inclusions EN ${index + 1}`}
+                                                        />
+                                                        {formData.inclusions_en.length > 1 && (
+                                                            <button type="button" onClick={() => handleRemoveArrayItem(index, "inclusions_en")} className="text-red-500 hover:text-red-700">
+                                                                <FaTimes />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                <button type="button" onClick={() => handleAddArrayItem("inclusions_en")} className="mt-2 text-blue-500 hover:text-blue-700 font-medium">
+                                                    <FaPlus className="inline-block mr-1" /> Add Inclusions EN
+                                                </button>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Exclusions (EN)</label>
+                                                {formData.exclusions_en.map((item, index) => (
+                                                    <div key={index} className="flex items-center space-x-2 mb-2">
+                                                        <input
+                                                            type="text"
+                                                            value={item}
+                                                            onChange={(e) => handleArrayChange(e, index, "exclusions_en")}
+                                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                            placeholder={`Exclusions EN ${index + 1}`}
+                                                        />
+                                                        {formData.exclusions_en.length > 1 && (
+                                                            <button type="button" onClick={() => handleRemoveArrayItem(index, "exclusions_en")} className="text-red-500 hover:text-red-700">
+                                                                <FaTimes />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                <button type="button" onClick={() => handleAddArrayItem("exclusions_en")} className="mt-2 text-blue-500 hover:text-blue-700 font-medium">
+                                                    <FaPlus className="inline-block mr-1" /> Add Exclusions EN
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                                {/* --- AKHIR INPUT BAHASA --- */}
+
+                                {/* Bagian Harga (di luar tab bahasa) */}
                                 <div className="col-span-2 grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700">Harga Dewasa Domestik</label>
@@ -551,7 +726,7 @@ const TourManagement = () => {
                                 </div>
 
 
-                                {/* Bagian Gambar */}
+                                {/* Bagian Gambar (di luar tab bahasa) */}
                                 <div className="col-span-2">
                                     <label className="block text-sm font-medium text-gray-700">Gambar Tur</label>
 
@@ -581,7 +756,8 @@ const TourManagement = () => {
                                     />
                                     <div className="flex flex-wrap gap-2 mt-2">
                                         {Array.from(formData.images).map((file, index) => (
-                                            <div key={index} className="relative">
+                                            <div key={index}
+                                                className="relative">
                                                 <img
                                                     src={URL.createObjectURL(file)}
                                                     alt={`Preview ${index + 1}`}
@@ -596,7 +772,8 @@ const TourManagement = () => {
 
                             <div className="mt-6 flex justify-end space-x-3">
                                 <button type="button" onClick={resetForm} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"> Batal </button>
-                                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"> {formData.id ? "Simpan Perubahan" : "Tambah Tur"} </button>
+                                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"> {formData.id ?
+                                    "Simpan Perubahan" : "Tambah Tur"} </button>
                             </div>
                         </form>
                     </div>
